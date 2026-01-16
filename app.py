@@ -97,7 +97,7 @@ if analyze_btn:
             data = fetch_data(keywords, months)
             
             if not data['naver'].empty:
-st.sidebar.divider()
+                st.sidebar.divider()
                 st.sidebar.subheader("📥 결과 내보내기")
                 
                 # 1. 앱 공유하기
