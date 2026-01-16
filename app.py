@@ -19,7 +19,7 @@ def get_korean_font():
 
 plt.rc('font', family=get_korean_font())
 
-# 2. 데이터 수집 및 가공 함수
+# 2. 데이터 수집 함수 (입력 순서 유지 로직 포함)
 def fetch_data(keywords, months):
     NAVER_CLIENT_ID = "9mDKko38immm22vni0rL"
     NAVER_CLIENT_SECRET = "ONIf7vxWzZ"
@@ -28,7 +28,9 @@ def fetch_data(keywords, months):
     start_date = end_date - timedelta(days=30 * months)
     
     results = {'naver': pd.DataFrame(), 'google': pd.DataFrame(), 'insta': pd.DataFrame(), 'total': pd.DataFrame()}
-    valid_keywords = []
+    
+    # 실제 수집에 성공한 키워드들을 입력 순서대로 담을 리스트
+    ordered_keywords = []
     
     for kw in keywords:
         try:
@@ -52,13 +54,16 @@ def fetch_data(keywords, months):
             df = pd.DataFrame(n_data['results'][0]['data'])
             if not df.empty:
                 column_name = str(kw)
-                valid_keywords.append(column_name)
+                ordered_keywords.append(column_name) # 수집 성공 시 순서 리스트에 추가
+                
                 df['period'] = pd.to_datetime(df['period'])
                 df = df.rename(columns={'period': 'date', 'ratio': column_name}).set_index('date')
                 
+                # 데이터 병합
                 if results['naver'].empty: results['naver'] = df
                 else: results['naver'] = results['naver'].combine_first(df)
                 
+                # 구글/인스타/통합 지수 생성 (시뮬레이션)
                 g_val = df[column_name].rolling(window=7, min_periods=1).mean() * 0.4
                 g_df = pd.DataFrame({column_name: g_val * np.random.uniform(0.85, 1.15, len(df))}, index=df.index)
                 if results['google'].empty: results['google'] = g_df
@@ -76,21 +81,26 @@ def fetch_data(keywords, months):
                 else: results['total'] = results['total'].combine_first(t_df)
         except: continue
 
+    # 핵심: 모든 결과 데이터프레임의 컬럼 순서를 입력받은 ordered_keywords 순서로 강제 재배치
     for key in results.keys():
-        if not results[key].empty: results[key] = results[key][valid_keywords]
+        if not results[key].empty:
+            # 존재하는 컬럼만 필터링하여 순서 적용
+            actual_cols = [c for c in ordered_keywords if c in results[key].columns]
+            results[key] = results[key][actual_cols]
+            
     return results
 
-# 3. 분석 코멘트 함수
+# 3. 코멘트 함수
 def get_analysis_comments(item_name):
-    status_pool = [f"• **시장 내 위상**: {item_name}은(는) 현재 카테고리 내 독보적인 화제성을 바탕으로 주요 브랜드 대비 압도적인 점유율을 기록 중입니다.",
-                   f"• **트렌드 주도력**: {item_name}은(는) 최근 MZ세대 사이에서 유입을 가장 활발히 이끌어내는 핵심 상품입니다."]
-    power_pool = [f"• **화제성 폭발력**: 특정 이벤트 시점 검색 지수가 수직 상승하며 매장 방문을 유도하는 강력한 동인이 됩니다."]
-    fandom_pool = [f"• **팬덤 응집력**: SNS 내 자발적 포스팅 활성화로 인해 실제 구매로 이어지는 충성 고객 확보가 용이합니다."]
+    status_pool = [f"• **시장 내 위상**: {item_name}은(는) 현재 카테고리 내 독보적인 화제성을 보유하고 있습니다.",
+                   f"• **트렌드 주도력**: 최근 편의점 신상품 중 가장 활발한 유입을 이끄는 핵심 상품입니다."]
+    power_pool = [f"• **화제성 폭발력**: 특정 이슈 발생 시 검색 지수가 급상승하는 강력한 동력을 가집니다."]
+    fandom_pool = [f"• **바이럴 전파력**: SNS 내 자발적 인증샷 문화가 견고하게 형성되어 있습니다."]
     return [random.choice(status_pool), random.choice(power_pool), random.choice(fandom_pool)]
 
 # 4. 사이드바 구성
 st.sidebar.title("📊 분석 제어판")
-items_raw = st.sidebar.text_input("분석 상품 리스트 (쉼표로 구분)", value="젤리, 초콜릿, 플레이브")
+items_raw = st.sidebar.text_input("분석 상품 리스트 (쉼표로 구분)", value="신라면, 틈새라면, 삼양라면")
 months = st.sidebar.slider("데이터 분석 기간 (개월)", 1, 12, 6)
 analyze_btn = st.sidebar.button("분석 시작")
 
@@ -99,13 +109,16 @@ st.title("🏪 GS25 상품 트렌드 분석 시스템")
 st.markdown("---")
 
 if analyze_btn:
+    # 입력된 순서 그대로 리스트 생성
     keywords = [x.strip() for x in items_raw.split(",") if x.strip()]
+    
     if keywords:
         target_item = keywords[0]
-        with st.spinner(f"분석 중..."):
+        with st.spinner(f"순서에 맞춰 분석 리포트 생성 중..."):
             data = fetch_data(keywords, months)
+            
             if not data['naver'].empty:
-                # --- 사이드바 도구 (PDF 버튼 복구) ---
+                # 사이드바 결과물 도구
                 st.sidebar.divider()
                 st.sidebar.subheader("📥 결과 내보내기")
                 if st.sidebar.button("🔗 앱 공유하기", use_container_width=True):
@@ -117,7 +130,7 @@ if analyze_btn:
                 st.sidebar.download_button(label="📥 데이터(CSV) 다운로드", data=csv, 
                                          file_name=f"GS25_{target_item}.csv", mime='text/csv', use_container_width=True)
 
-                # 섹션 1: 그래프
+                # 섹션 1: 그래프 (이제 입력 순서대로 범례가 나옵니다)
                 st.subheader("📈 매체별 트렌드 비교 분석")
                 tab1, tab2, tab3, tab4 = st.tabs(["⭐ 통합 지수", "📉 네이버", "🔍 구글", "📱 인스타그램"])
                 with tab1: st.line_chart(data['total'])
@@ -136,25 +149,27 @@ if analyze_btn:
 
                 with col_right:
                     st.header("🏆 Best 5 순위")
+                    # 순위는 데이터 수치(평균) 기준 정렬
                     avg_scores = data['total'].mean().sort_values(ascending=False)
                     medal = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"]
                     for i, (name, score) in enumerate(avg_scores.items()):
                         if i >= 5: break
                         st.success(f"{medal[i]} **{name}**")
-                    st.caption("※ 디지털 트렌드 지수 합산 기준")
+                    st.caption("※ 디지털 트렌드 지수 평균치 기준")
 
                 st.markdown("---")
-                # 섹션 3: 상세 분석 및 추천 상권
+                # 섹션 3: 전략 제언
                 st.subheader(f"💡 {target_item} 마케팅 전략 제언")
                 c1, c2 = st.columns(2)
                 with c1:
                     st.info("🔎 **매체 분석**")
-                    st.write(f"• 네이버: {target_item} 관련 검색량 지속 우상향")
-                    st.write(f"• 인스타그램: MZ세대 인증샷 중심 바이럴 확산")
+                    st.write(f"• 해당 상품군은 포털 검색보다 SNS 바이럴 민감도가 높게 나타남")
                 with c2:
                     st.error("🔥 **강력추천 상권**")
-                    st.write("• **역세권/대학가**: 신규 유입 및 트렌드 전파 속도 최상")
-                    st.write("• **주거 밀집지**: 목적 구매 위주의 안정적 매출 발생")
+                    st.write("• **오피스/대학가**: 트렌드 상품 소비 속도가 가장 빠른 지역")
 
-            else: st.error("데이터 수집 실패.")
+            else: st.error("데이터 수집 실패. 상품명을 확인해주세요.")
 else: st.info("왼쪽 사이드바에서 상품명을 입력하고 [분석 시작]을 눌러주세요.")
+
+st.markdown("<br><br>", unsafe_allow_html=True)
+st.caption("GS25 Market Intelligence System | Powered by Streamlit")
