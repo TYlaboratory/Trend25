@@ -79,7 +79,7 @@ def fetch_data(keywords, months):
 
 # 3. 사이드바 구성
 st.sidebar.title("📊 분석 제어판")
-items_raw = st.sidebar.text_input("분석 상품 리스트 (쉼표로 구분)", value="티쳐스, 플레이브, 잭다니엘")
+items_raw = st.sidebar.text_input("분석 상품 리스트 (쉼표로 구분)", value="000, 00000, 0000")
 months = st.sidebar.slider("데이터 분석 기간 (개월)", 1, 12, 6)
 st.sidebar.info("💡 첫 번째로 입력한 상품이 상세 리포트의 주인공이 됩니다.")
 analyze_btn = st.sidebar.button("분석 시작")
@@ -97,6 +97,27 @@ if analyze_btn:
             data = fetch_data(keywords, months)
             
             if not data['naver'].empty:
+st.sidebar.divider()
+                st.sidebar.subheader("📥 결과 내보내기")
+                
+                # 1. 앱 공유하기
+                if st.sidebar.button("🔗 앱 공유하기", use_container_width=True):
+                    st.sidebar.info("상단 주소창의 URL을 복사하여 공유해주세요!")
+                
+                # 2. PDF 저장 안내
+                if st.sidebar.button("📄 PDF로 저장", use_container_width=True):
+                    st.sidebar.warning("단축키 [Ctrl + P]를 눌러 PDF로 저장하세요.")
+
+                # 3. CSV 데이터 다운로드
+                csv = data['total'].to_csv(index=False).encode('utf-8-sig')
+                st.sidebar.download_button(
+                    label="📥 데이터(CSV) 다운로드",
+                    data=csv,
+                    file_name=f"GS25_{target_item}.csv",
+                    mime='text/csv',
+                    use_container_width=True
+                )
+                st.sidebar.divider()
                 # 섹션 1: 매체별 그래프 (탭 형식)
                 st.subheader("📈 매체별 트렌드 비교 분석")
                 tab1, tab2, tab3, tab4 = st.tabs(["⭐ 통합 지수", "📉 네이버", "🔍 구글", "📱 인스타그램"])
