@@ -180,7 +180,7 @@ comments = get_analysis_comments(target_item)
 for comment in comments:
     st.write(comment)
 
-st.markdown(f"### 🔎 {target_item} 매체별 상세 분석 결과")
+    st.markdown(f"### 🔎 {target_item} 매체별 상세 분석 결과")
 
 # 매체별 상세 문구도 다양화 (3종씩 준비)
 naver_txt = random.choice([
