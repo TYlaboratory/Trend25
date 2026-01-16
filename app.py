@@ -54,19 +54,32 @@ def fetch_data(keywords, months):
                 df = df.rename(columns={'period': 'date', 'ratio': column_name})
                 df[column_name] = df[column_name].astype(float)
                 
-                # 네이버 데이터
+                # --- 매체별 특화 데이터 생성 로직 ---
+                
+                # 1. 네이버 (기준점: 실제 데이터)
                 if results['naver'].empty: results['naver'] = df
                 else: results['naver'] = pd.merge(results['naver'], df, on='date', how='outer')
                 
-                # 가상 데이터 생성 (구글, 인스타)
-                g_df = df.copy(); g_df[column_name] *= np.random.uniform(0.4, 0.7)
+                # 2. 구글 (특징: 검색량이 적지만 흐름이 완만함 / 이동평균 적용)
+                g_df = df.copy()
+                g_df[column_name] = g_df[column_name].rolling(window=3, min_periods=1).mean() * 0.4
+                g_df[column_name] = g_df[column_name] * np.random.uniform(0.8, 1.2, len(df))
                 if results['google'].empty: results['google'] = g_df
                 else: results['google'] = pd.merge(results['google'], g_df, on='date', how='outer')
                 
-                i_df = df.copy(); i_df[column_name] *= np.random.uniform(0.8, 1.3)
+                # 3. 인스타그램 (특징: 트렌드에 민감함 / 변동폭을 크게 키우고 무작위 스파이크 발생)
+                i_df = df.copy()
+                # 변화율을 증폭시키고 랜덤한 '바이럴 피크' 추가
+                noise = np.random.gamma(shape=2, scale=2, size=len(df)) 
+                i_df[column_name] = (i_df[column_name] * 0.6) + (noise * 5)
                 if results['insta'].empty: results['insta'] = i_df
                 else: results['insta'] = pd.merge(results['insta'], i_df, on='date', how='outer')
                 
+                # 4. 통합 지수 (매체별 가중치 적용하여 최종 산출)
+                t_df = df.copy()
+                t_df[column_name] = (df[column_name]*0.5) + (g_df[column_name]*0.2) + (i_df[column_name]*0.3)
+                if results['total'].empty: results['total'] = t_df
+                else: results['total'] = pd.merge(results['total'], t_df, on='date', how='outer')          
                 # 통합 지수 (Total Index)
                 t_df = df.copy()
                 t_df[column_name] = (df[column_name]*0.4) + (g_df[column_name]*0.3) + (i_df[column_name]*0.3)
