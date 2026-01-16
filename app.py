@@ -78,7 +78,7 @@ def fetch_data(keywords, months):
 
 # 3. 사이드바 구성
 st.sidebar.title("📊 분석 제어판")
-items_raw = st.sidebar.text_input("분석 상품 리스트 (쉼표로 구분)", value="신라면, 틈새라면, 삼양라면")
+items_raw = st.sidebar.text_input("분석 상품 리스트 (쉼표로 구분)", value="틈새라면, 신라면, 삼양라면")
 months = st.sidebar.slider("데이터 분석 기간 (개월)", 1, 12, 6)
 analyze_btn = st.sidebar.button("분석 시작")
 
@@ -95,11 +95,16 @@ if analyze_btn:
             if not data['total'].empty:
                 target_item = valid_list[0]
                 
-                # 결과 내보내기 도구
+                # 결과 내보내기 도구 (수정된 버튼 문구)
                 st.sidebar.divider()
                 st.sidebar.subheader("📥 결과 내보내기")
-                if st.sidebar.button("📄 PDF로 저장", use_container_width=True):
-                    st.sidebar.warning("단축키 [Ctrl + P]를 눌러 PDF로 저장하세요.")
+                
+                # 버튼 문구와 기능을 요청하신 대로 변경
+                if st.sidebar.button("📄 Ctrl+P로 PDF 저장하기", use_container_width=True):
+                    st.sidebar.success("💡 단축키 가이드")
+                    st.sidebar.write("1. **Ctrl + P** (Mac은 **Cmd + P**)를 누르세요.")
+                    st.sidebar.write("2. 대상을 **'PDF로 저장'**으로 선택하세요.")
+                    st.sidebar.write("3. 하단 **'배경 그래픽'**을 체크하면 더 예쁘게 나옵니다.")
                 
                 csv = data['total'].to_csv(index=True).encode('utf-8-sig')
                 st.sidebar.download_button(label="📥 데이터(CSV) 다운로드", data=csv, 
@@ -121,7 +126,7 @@ if analyze_btn:
                 with col_left:
                     st.header(f"📑 [{target_item}] 전략 리포트")
                     st.subheader("핵심인사이트 요약")
-                    st.write(f"• **트렌드 주도력**: {target_item}은(는) 최근 MZ세대 사이에서 유입을 가장 활발히 이끌어내는 핵심 상품입니다.")
+                    st.write(f"• **트렌드 주도력**: {target_item}은(는) 최근 MZ세대 사이에서 유입을 활발히 이끌어내는 핵심 상품입니다.")
                     st.write(f"• **화제성 폭발력**: 특정 이벤트 시점 검색 지수가 수직 상승하며 매장 방문을 유도하는 강력한 동인이 됩니다.")
                     st.write(f"• **고객 충성도**: SNS 내 자발적 포스팅 활성화로 실제 구매로 이어지는 팬덤이 견고합니다.")
                     
@@ -142,7 +147,7 @@ if analyze_btn:
 
                 st.markdown("---")
                 
-                # 섹션 3: 강력추천 상권 및 전략 (복구된 부분)
+                # 섹션 3: 강력추천 상권 및 전략
                 st.subheader(f"💡 {target_item} 도입 강력추천 상권")
                 ca, cb = st.columns(2)
                 with ca:
