@@ -131,10 +131,10 @@ if analyze_btn:
                 st.subheader("📈 매체별 트렌드 비교 분석")
                 tab1, tab2, tab3, tab4 = st.tabs(["⭐ 통합 지수", "📉 네이버", "🔍 구글", "📱 인스타그램"])
                 
-                with tab1: st.line_chart(data['total'].set_index('date'))
-                with tab2: st.line_chart(data['naver'].set_index('date'))
-                with tab3: st.line_chart(data['google'].set_index('date'))
-                with tab4: st.line_chart(data['insta'].set_index('date'))
+                with tab1: st.line_chart(data['total'])
+                with tab2: st.line_chart(data['naver'])
+                with tab3: st.line_chart(data['google'])
+                with tab4: st.line_chart(data['insta'])
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown("---")
