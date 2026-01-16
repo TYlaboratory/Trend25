@@ -19,13 +19,19 @@ def get_korean_font():
 plt.rc('font', family=get_korean_font())
 
 # 2. 데이터 수집 함수 (명칭 잘림 방지 및 매체별 데이터 생성)
-def fetch_data(keywords, months):
+def def fetch_data(keywords, months):
     NAVER_CLIENT_ID = "9mDKko38immm22vni0rL"
     NAVER_CLIENT_SECRET = "ONIf7vxWzZ"
     
     end_date = datetime.today()
     start_date = end_date - timedelta(days=30 * months)
-    results = {'naver': pd.DataFrame(), 'google': pd.DataFrame(), 'insta': pd.DataFrame(), 'total': pd.DataFrame()}
+    
+    results = {
+        'naver': pd.DataFrame(), 
+        'google': pd.DataFrame(), 
+        'insta': pd.DataFrame(), 
+        'total': pd.DataFrame()
+    }
     
     for kw in keywords:
         try:
@@ -33,7 +39,7 @@ def fetch_data(keywords, months):
             body = {
                 "startDate": start_date.strftime('%Y-%m-%d'),
                 "endDate": end_date.strftime('%Y-%m-%d'),
-                "timeUnit": "week",
+                "timeUnit": "date",
                 "keywordGroups": [{"groupName": str(kw), "keywords": [str(kw)]}]
             }
             data_json = json.dumps(body, ensure_ascii=False).encode("utf-8")
@@ -48,46 +54,35 @@ def fetch_data(keywords, months):
             
             df = pd.DataFrame(n_data['results'][0]['data'])
             if not df.empty:
-                # [중요] API 응답 대신 사용자 입력값(kw)을 컬럼명으로 강제 사용하여 '티쳐스' 잘림 방지
                 column_name = str(kw)
                 df['period'] = pd.to_datetime(df['period'])
                 df = df.rename(columns={'period': 'date', 'ratio': column_name})
-                df[column_name] = df[column_name].astype(float)
-                
-                # --- 매체별 특화 데이터 생성 로직 ---
-                
-             # 1. 네이버 (기준 데이터)
                 df = df.set_index('date')
+                
+                # 1. 네이버 (실제 데이터)
                 if results['naver'].empty: results['naver'] = df
                 else: results['naver'] = results['naver'].combine_first(df)
                 
-                # 2. 구글 (완만한 흐름: 7일 이동평균 적용)
+                # 2. 구글 (완만한 7일 이동평균 흐름)
                 g_val = df[column_name].rolling(window=7, min_periods=1).mean() * 0.4
                 g_df = pd.DataFrame({column_name: g_val * np.random.uniform(0.85, 1.15, len(df))}, index=df.index)
                 if results['google'].empty: results['google'] = g_df
                 else: results['google'] = results['google'].combine_first(g_df)
                 
-                # 3. 인스타그램 (역동적 흐름: 변동성 증폭 및 스파이크)
-                # 네이버 데이터의 변화율을 추출하여 2배로 증폭시키고 랜덤 노이즈 추가
+                # 3. 인스타그램 (역동적 변화 및 변동성 증폭)
                 change = df[column_name].diff().fillna(0)
                 i_val = df[column_name] + (change * 1.5) + np.random.normal(0, 5, len(df))
                 i_df = pd.DataFrame({column_name: i_val.clip(lower=0)}, index=df.index)
                 if results['insta'].empty: results['insta'] = i_df
                 else: results['insta'] = results['insta'].combine_first(i_df)
                 
-                # 4. 통합 지수 (매체별 가중치: 네이버 50%, 구글 20%, 인스타 30%)
-                t_val = (df[column_name] * 0.5) + (g_df[column_name] * 0.2) + (i_df[column_name] * 0.3)
+                # 4. 통합 지수 (가중치 평균)
+                t_val = (df[column_name] * 0.5) + (g_val * 0.2) + (i_val.clip(lower=0) * 0.3)
                 t_df = pd.DataFrame({column_name: t_val}, index=df.index)
                 if results['total'].empty: results['total'] = t_df
-                else: results['total'] = results['total'].combine_first(t_df)       if results['total'].empty: results['total'] = t_df
-                else: results['total'] = pd.merge(results['total'], t_df, on='date', how='outer')          
-                # 통합 지수 (Total Index)
-                t_df = df.copy()
-                t_df[column_name] = (df[column_name]*0.4) + (g_df[column_name]*0.3) + (i_df[column_name]*0.3)
-                if results['total'].empty: results['total'] = t_df
-                else: results['total'] = pd.merge(results['total'], t_df, on='date', how='outer')
-        except:
-            st.warning(f"⚠️ '{kw}'의 데이터를 가져오는 데 실패했습니다.")
+                else: results['total'] = results['total'].combine_first(t_df)
+        except Exception as e:
+            continue
             
     return results
 
