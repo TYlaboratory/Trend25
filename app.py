@@ -19,7 +19,7 @@ def get_korean_font():
 plt.rc('font', family=get_korean_font())
 
 # 2. 데이터 수집 함수 (명칭 잘림 방지 및 매체별 데이터 생성)
-    def fetch_data(keywords, months):
+def fetch_data(keywords, months):
     NAVER_CLIENT_ID = "9mDKko38immm22vni0rL"
     NAVER_CLIENT_SECRET = "ONIf7vxWzZ"
     
