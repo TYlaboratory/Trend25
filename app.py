@@ -78,9 +78,22 @@ if analyze_btn:
             if not data['total'].empty:
                 target_item = valid_list[0]
                 
-                # --- [수정] PDF 저장 안내 섹션 ---
-                st.info("💡 **이 리포트를 PDF로 저장하시겠습니까?** \n\n 화면 아무곳이나 **마우스 오른쪽 클릭** 후 **[인쇄]**를 누르거나, 키보드의 **Ctrl + P**를 눌러 'PDF로 저장'을 선택해 주세요.")
+                # --- [수정] 사이드바 결과물 도구함 ---
+                st.sidebar.divider()
+                st.sidebar.subheader("📥 결과 내보내기")
+                
+                # PDF 저장 안내 버튼 (안전한 방식)
+                if st.sidebar.button("📄 PDF 저장 가이드", use_container_width=True):
+                    st.sidebar.success("💡 **Ctrl + P**를 누르세요!")
+                    st.sidebar.write("1. 인쇄창에서 대상을 **'PDF로 저장'**으로 변경")
+                    st.sidebar.write("2. 설정에서 **'배경 그래픽'** 체크")
+                    st.sidebar.write("3. 저장 버튼 클릭")
+                
+                csv = data['total'].to_csv(index=True).encode('utf-8-sig')
+                st.sidebar.download_button(label="📥 데이터(CSV) 다운로드", data=csv, 
+                                         file_name=f"GS25_{target_item}.csv", mime='text/csv', use_container_width=True)
 
+                # 섹션 1: 그래프 분석
                 st.subheader(f"📈 {target_item} 중심 매체별 트렌드")
                 tab1, tab2, tab3, tab4 = st.tabs(["⭐ 통합 지수", "📉 네이버", "🔍 구글", "📱 인스타그램"])
                 with tab1: st.line_chart(data['total'])
@@ -125,12 +138,6 @@ if analyze_btn:
                     st.error("🔥 [강력추천 2] 주거 밀집 상권")
                     st.write("**이유**: 일상적 반복 구매가 활발한 지역")
                     st.write("**전략**: 상시 재고 확보로 결품 방지")
-                
-                # 사이드바는 깔끔하게 CSV만 유지
-                st.sidebar.divider()
-                csv = data['total'].to_csv(index=True).encode('utf-8-sig')
-                st.sidebar.download_button(label="📥 데이터(CSV) 다운로드", data=csv, 
-                                         file_name=f"GS25_{target_item}.csv", mime='text/csv', use_container_width=True)
             else:
                 st.error("데이터 수집 실패")
 else:
