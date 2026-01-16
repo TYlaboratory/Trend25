@@ -56,29 +56,30 @@ def fetch_data(keywords, months):
                 
                 # --- 매체별 특화 데이터 생성 로직 ---
                 
-                # 1. 네이버 (기준점: 실제 데이터)
+             # 1. 네이버 (기준 데이터)
+                df = df.set_index('date')
                 if results['naver'].empty: results['naver'] = df
-                else: results['naver'] = pd.merge(results['naver'], df, on='date', how='outer')
+                else: results['naver'] = results['naver'].combine_first(df)
                 
-                # 2. 구글 (특징: 검색량이 적지만 흐름이 완만함 / 이동평균 적용)
-                g_df = df.copy()
-                g_df[column_name] = g_df[column_name].rolling(window=3, min_periods=1).mean() * 0.4
-                g_df[column_name] = g_df[column_name] * np.random.uniform(0.8, 1.2, len(df))
+                # 2. 구글 (완만한 흐름: 7일 이동평균 적용)
+                g_val = df[column_name].rolling(window=7, min_periods=1).mean() * 0.4
+                g_df = pd.DataFrame({column_name: g_val * np.random.uniform(0.85, 1.15, len(df))}, index=df.index)
                 if results['google'].empty: results['google'] = g_df
-                else: results['google'] = pd.merge(results['google'], g_df, on='date', how='outer')
+                else: results['google'] = results['google'].combine_first(g_df)
                 
-                # 3. 인스타그램 (특징: 트렌드에 민감함 / 변동폭을 크게 키우고 무작위 스파이크 발생)
-                i_df = df.copy()
-                # 변화율을 증폭시키고 랜덤한 '바이럴 피크' 추가
-                noise = np.random.gamma(shape=2, scale=2, size=len(df)) 
-                i_df[column_name] = (i_df[column_name] * 0.6) + (noise * 5)
+                # 3. 인스타그램 (역동적 흐름: 변동성 증폭 및 스파이크)
+                # 네이버 데이터의 변화율을 추출하여 2배로 증폭시키고 랜덤 노이즈 추가
+                change = df[column_name].diff().fillna(0)
+                i_val = df[column_name] + (change * 1.5) + np.random.normal(0, 5, len(df))
+                i_df = pd.DataFrame({column_name: i_val.clip(lower=0)}, index=df.index)
                 if results['insta'].empty: results['insta'] = i_df
-                else: results['insta'] = pd.merge(results['insta'], i_df, on='date', how='outer')
+                else: results['insta'] = results['insta'].combine_first(i_df)
                 
-                # 4. 통합 지수 (매체별 가중치 적용하여 최종 산출)
-                t_df = df.copy()
-                t_df[column_name] = (df[column_name]*0.5) + (g_df[column_name]*0.2) + (i_df[column_name]*0.3)
+                # 4. 통합 지수 (매체별 가중치: 네이버 50%, 구글 20%, 인스타 30%)
+                t_val = (df[column_name] * 0.5) + (g_df[column_name] * 0.2) + (i_df[column_name] * 0.3)
+                t_df = pd.DataFrame({column_name: t_val}, index=df.index)
                 if results['total'].empty: results['total'] = t_df
+                else: results['total'] = results['total'].combine_first(t_df)       if results['total'].empty: results['total'] = t_df
                 else: results['total'] = pd.merge(results['total'], t_df, on='date', how='outer')          
                 # 통합 지수 (Total Index)
                 t_df = df.copy()
