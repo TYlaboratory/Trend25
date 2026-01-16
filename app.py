@@ -8,6 +8,7 @@ import urllib.request
 import ssl
 import random
 from datetime import datetime, timedelta
+import streamlit.components.v1 as components
 
 # 1. 페이지 설정 및 한글 폰트
 st.set_page_config(page_title="GS25 통합 트렌드 분석 시스템", layout="wide")
@@ -78,7 +79,7 @@ def fetch_data(keywords, months):
 
 # 3. 사이드바 구성
 st.sidebar.title("📊 분석 제어판")
-items_raw = st.sidebar.text_input("분석 상품 리스트 (쉼표로 구분)", value="틈새라면, 신라면, 삼양라면")
+items_raw = st.sidebar.text_input("분석 상품 리스트 (쉼표로 구분)", value="신라면, 틈새라면, 삼양라면")
 months = st.sidebar.slider("데이터 분석 기간 (개월)", 1, 12, 6)
 analyze_btn = st.sidebar.button("분석 시작")
 
@@ -95,16 +96,22 @@ if analyze_btn:
             if not data['total'].empty:
                 target_item = valid_list[0]
                 
-                # 결과 내보내기 도구 (수정된 버튼 문구)
+                # 결과 내보내기 도구
                 st.sidebar.divider()
                 st.sidebar.subheader("📥 결과 내보내기")
                 
-                # 버튼 문구와 기능을 요청하신 대로 변경
-                if st.sidebar.button("📄 Ctrl+P로 PDF 저장하기", use_container_width=True):
-                    st.sidebar.success("💡 단축키 가이드")
-                    st.sidebar.write("1. **Ctrl + P** (Mac은 **Cmd + P**)를 누르세요.")
-                    st.sidebar.write("2. 대상을 **'PDF로 저장'**으로 선택하세요.")
-                    st.sidebar.write("3. 하단 **'배경 그래픽'**을 체크하면 더 예쁘게 나옵니다.")
+                # 핵심: 버튼 클릭 시 자바스크립트 실행 (인쇄 창 호출)
+                if st.sidebar.button("📄 즉시 PDF 저장 (인쇄창)", use_container_width=True):
+                    components.html(
+                        """
+                        <script>
+                            window.parent.focus();
+                            window.parent.print();
+                        </script>
+                        """,
+                        height=0
+                    )
+                    st.sidebar.info("💡 인쇄창에서 'PDF로 저장'을 선택하세요.")
                 
                 csv = data['total'].to_csv(index=True).encode('utf-8-sig')
                 st.sidebar.download_button(label="📥 데이터(CSV) 다운로드", data=csv, 
