@@ -27,7 +27,13 @@ def fetch_data(keywords, months):
     end_date = datetime.today()
     start_date = end_date - timedelta(days=30 * months)
     
-    results = {'naver': pd.DataFrame(), 'google': pd.DataFrame(), 'insta': pd.DataFrame(), 'total': pd.DataFrame()}
+    results = {
+        'naver': pd.DataFrame(), 
+        'google': pd.DataFrame(), 
+        'insta': pd.DataFrame(), 
+        'total': pd.DataFrame()
+    }
+    
     valid_keywords = []
     
     for kw in keywords:
@@ -53,9 +59,12 @@ def fetch_data(keywords, months):
             if not df.empty:
                 column_name = str(kw)
                 valid_keywords.append(column_name)
-                df['period'] = pd.to_datetime(df['period'])
-                df = df.rename(columns={'period': 'date', 'ratio': column_name}).set_index('date')
                 
+                df['period'] = pd.to_datetime(df['period'])
+                df = df.rename(columns={'period': 'date', 'ratio': column_name})
+                df = df.set_index('date')
+                
+                # 데이터 생성 및 병합
                 if results['naver'].empty: results['naver'] = df
                 else: results['naver'] = results['naver'].combine_first(df)
                 
@@ -74,24 +83,37 @@ def fetch_data(keywords, months):
                 t_df = pd.DataFrame({column_name: t_val}, index=df.index)
                 if results['total'].empty: results['total'] = t_df
                 else: results['total'] = results['total'].combine_first(t_df)
-        except: continue
+        except:
+            continue
 
     for key in results.keys():
-        if not results[key].empty: results[key] = results[key][valid_keywords]
+        if not results[key].empty:
+            results[key] = results[key][valid_keywords]
+            
     return results
 
-# 3. 분석 코멘트 함수
+# 3. 분석 코멘트 랜덤 생성 함수
 def get_analysis_comments(item_name):
-    status_pool = [f"• **시장 내 위상**: {item_name}은(는) 현재 카테고리 내 독보적인 화제성을 바탕으로 주요 브랜드 대비 압도적인 점유율을 기록 중입니다.",
-                   f"• **트렌드 주도력**: {item_name}은(는) 최근 MZ세대 사이에서 유입을 가장 활발히 이끌어내는 핵심 상품입니다."]
-    power_pool = [f"• **화제성 폭발력**: 특정 이벤트 시점 검색 지수가 수직 상승하며 매장 방문을 유도하는 강력한 동인이 됩니다."]
-    fandom_pool = [f"• **팬덤 응집력**: SNS 내 자발적 포스팅 활성화로 인해 실제 구매로 이어지는 충성 고객 확보가 용이합니다."]
+    status_pool = [
+        f"• **시장 내 위상**: {item_name}은(는) 현재 카테고리 내 독보적인 화제성을 바탕으로 주요 브랜드 대비 압도적인 점유율을 기록 중입니다.",
+        f"• **트렌드 주도력**: {item_name}은(는) 최근 MZ세대 사이에서 신규 유입을 활발히 이끌어내는 핵심 전략 상품입니다.",
+        f"• **카테고리 선점**: 동종 상품군 내에서 {item_name}의 검색 점유율이 과점 형태로 전환되고 있습니다."
+    ]
+    power_pool = [
+        f"• **화제성 폭발력**: 특정 이벤트 시점 검색 지수가 수직 상승하며 매장 유입을 견인하는 강력한 동인이 됩니다.",
+        f"• **유입 견인 효과**: 연관 키워드 분석 시 목적 구매 성향이 강한 검색 패턴이 포착됩니다."
+    ]
+    fandom_pool = [
+        f"• **팬덤 응집력**: SNS 내 자발적 포스팅 활성화로 인해 실제 구매로 이어지는 충성 고객 확보가 용이합니다.",
+        f"• **바이럴 전파력**: 단순 구매를 넘어 '인증샷' 문화가 형성되어 유기적 마케팅 효과를 누리고 있습니다."
+    ]
     return [random.choice(status_pool), random.choice(power_pool), random.choice(fandom_pool)]
 
 # 4. 사이드바 구성
 st.sidebar.title("📊 분석 제어판")
 items_raw = st.sidebar.text_input("분석 상품 리스트 (쉼표로 구분)", value="젤리, 초콜릿, 플레이브")
 months = st.sidebar.slider("데이터 분석 기간 (개월)", 1, 12, 6)
+st.sidebar.info("💡 첫 번째로 입력한 상품이 전략 리포트의 주인공이 됩니다.")
 analyze_btn = st.sidebar.button("분석 시작")
 
 # 5. 메인 대시보드
@@ -102,16 +124,13 @@ if analyze_btn:
     keywords = [x.strip() for x in items_raw.split(",") if x.strip()]
     if keywords:
         target_item = keywords[0]
-        with st.spinner(f"분석 중..."):
+        
+        with st.spinner(f"'{', '.join(keywords)}' 분석 중..."):
             data = fetch_data(keywords, months)
+            
             if not data['naver'].empty:
-                # --- 사이드바 도구 (PDF 버튼 복구) ---
                 st.sidebar.divider()
                 st.sidebar.subheader("📥 결과 내보내기")
-                if st.sidebar.button("🔗 앱 공유하기", use_container_width=True):
-                    st.sidebar.info("상단 URL을 복사하여 공유해주세요!")
-                if st.sidebar.button("📄 PDF로 저장", use_container_width=True):
-                    st.sidebar.warning("단축키 [Ctrl + P]를 눌러 PDF로 저장하세요.")
                 
                 csv = data['total'].to_csv(index=True).encode('utf-8-sig')
                 st.sidebar.download_button(label="📥 데이터(CSV) 다운로드", data=csv, 
@@ -127,34 +146,59 @@ if analyze_btn:
                 
                 st.markdown("---")
                 
-                # 섹션 2: 상세 리포트 & Best 5
+                # 섹션 2: 상세 리포트
                 col_left, col_right = st.columns([2, 1])
+                
                 with col_left:
                     st.header(f"📑 [{target_item}] 전략 리포트")
-                    st.subheader("핵심인사이트 요약")
-                    for comment in get_analysis_comments(target_item): st.write(comment)
+                    st.subheader(f"[{target_item} 핵심인사이트 요약]")
+                    st.markdown("---")
+                    
+                    comments = get_analysis_comments(target_item)
+                    for comment in comments:
+                        st.write(comment)
 
+                # --- 신규 추가: 판매 순위 Best 5 섹션 ---
                 with col_right:
-                    st.header("🏆 Best 5 순위")
+                    st.header("🏆 Best 5")
+                    st.subheader("연관 상품 트렌드 순위")
+                    st.markdown("---")
+                    
+                    # 통합 지수의 최근 평균값을 기준으로 가상의 Best 5 생성
+                    # (실제 데이터 기반으로 순위를 시뮬레이션함)
                     avg_scores = data['total'].mean().sort_values(ascending=False)
-                    medal = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"]
+                    
                     for i, (name, score) in enumerate(avg_scores.items()):
                         if i >= 5: break
+                        medal = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"]
                         st.success(f"{medal[i]} **{name}**")
-                    st.caption("※ 디지털 트렌드 지수 합산 기준")
+                    
+                    st.caption("※ 위 순위는 검색량 및 바이럴 지수를 합산한 '디지털 마켓 점유율' 기반 예상 순위입니다.")
 
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                # 섹션 3: 매체별 상세 분석 및 상권 추천
+                st.subheader(f"🔎 {target_item} 매체별 상세 분석 결과")
                 st.markdown("---")
-                # 섹션 3: 상세 분석 및 추천 상권
-                st.subheader(f"💡 {target_item} 마케팅 전략 제언")
-                c1, c2 = st.columns(2)
-                with c1:
-                    st.info("🔎 **매체 분석**")
-                    st.write(f"• 네이버: {target_item} 관련 검색량 지속 우상향")
-                    st.write(f"• 인스타그램: MZ세대 인증샷 중심 바이럴 확산")
-                with c2:
-                    st.error("🔥 **강력추천 상권**")
-                    st.write("• **역세권/대학가**: 신규 유입 및 트렌드 전파 속도 최상")
-                    st.write("• **주거 밀집지**: 목적 구매 위주의 안정적 매출 발생")
+                st.write(f"1. **네이버**: {target_item}의 검색 하한선이 상승하며 대중적 인지도 확보.")
+                st.write(f"2. **구글**: 핵심 타겟층의 정보 탐색이 능동적으로 발생 중.")
+                st.write(f"3. **인스타그램**: MZ세대의 해시태그 점유율이 급증하는 추세.")
 
-            else: st.error("데이터 수집 실패.")
-else: st.info("왼쪽 사이드바에서 상품명을 입력하고 [분석 시작]을 눌러주세요.")
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                st.subheader(f"💡 {target_item} 도입 강력추천 상권")
+                st.markdown("---")
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    st.error("🔥 [강력추천 1] 유동강세 / 특수상권")
+                    st.write("**이유**: 트렌드 민감 MZ세대 밀집 상권")
+                with col_b:
+                    st.error("🔥 [강력추천 2] 아파트 / 소가구 주거 상권")
+                    st.write("**이유**: 로열티 기반 반복 구매 활발 지역")
+            else:
+                st.error("데이터 수집 실패.")
+else:
+    st.info("왼쪽 사이드바에서 상품명을 입력하고 [분석 시작] 버튼을 눌러주세요.")
+
+st.markdown("<br><br>", unsafe_allow_html=True)
+st.caption("GS25 Market Intelligence System | Powered by Streamlit")
