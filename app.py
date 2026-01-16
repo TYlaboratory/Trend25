@@ -90,35 +90,29 @@ st.markdown("---")
 if analyze_btn:
     keywords = [x.strip() for x in items_raw.split(",") if x.strip()]
     if keywords:
-        with st.spinner("트렌드 지수 및 전략 분석 중..."):
+        with st.spinner("트렌드 분석 및 전략 리포트 생성 중..."):
             data, valid_list = fetch_data(keywords, months)
             
             if not data['total'].empty:
                 target_item = valid_list[0]
                 
-                # 결과 내보내기 도구
-                st.sidebar.divider()
-                st.sidebar.subheader("📥 결과 내보내기")
-                
-                # 핵심: 버튼 클릭 시 자바스크립트 실행 (인쇄 창 호출)
-                if st.sidebar.button("📄 즉시 PDF 저장 (인쇄창)", use_container_width=True):
-                    components.html(
-                        """
-                        <script>
-                            window.parent.focus();
-                            window.parent.print();
-                        </script>
-                        """,
-                        height=0
-                    )
-                    st.sidebar.info("💡 인쇄창에서 'PDF로 저장'을 선택하세요.")
-                
-                csv = data['total'].to_csv(index=True).encode('utf-8-sig')
-                st.sidebar.download_button(label="📥 데이터(CSV) 다운로드", data=csv, 
-                                         file_name=f"GS25_{target_item}.csv", mime='text/csv', use_container_width=True)
+                # --- [수정] 인쇄용 자바스크립트 실행 버튼 ---
+                col_header, col_print = st.columns([5, 1])
+                with col_header:
+                    st.subheader(f"📊 {target_item} 통합 분석 결과")
+                with col_print:
+                    # 메인 화면에 배치하여 클릭 시 즉시 인쇄창 실행
+                    if st.button("📄 PDF 출력", use_container_width=True):
+                        components.html(
+                            """
+                            <script>
+                                window.parent.print();
+                            </script>
+                            """,
+                            height=0
+                        )
 
                 # 섹션 1: 그래프 분석
-                st.subheader("📈 매체별 트렌드 비교 분석")
                 tab1, tab2, tab3, tab4 = st.tabs(["⭐ 통합 지수", "📉 네이버", "🔍 구글", "📱 인스타그램"])
                 with tab1: st.line_chart(data['total'])
                 with tab2: st.line_chart(data['naver'])
@@ -166,8 +160,10 @@ if analyze_btn:
                     st.write("**이유**: 팬덤 로열티 기반의 일상적 반복 구매가 활발한 지역")
                     st.write("**전략**: 상시 재고 확보 및 연관 상품 교차 진열로 객단가 유도")
                 
-                st.markdown("<br><br>", unsafe_allow_html=True)
-                st.caption("GS25 Market Intelligence System | Powered by Streamlit")
+                st.sidebar.divider()
+                csv = data['total'].to_csv(index=True).encode('utf-8-sig')
+                st.sidebar.download_button(label="📥 데이터(CSV) 다운로드", data=csv, 
+                                         file_name=f"GS25_{target_item}.csv", mime='text/csv', use_container_width=True)
 
             else:
                 st.error("데이터 수집에 실패했습니다. 상품명을 확인해주세요.")
