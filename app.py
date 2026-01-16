@@ -19,7 +19,7 @@ def get_korean_font():
 
 plt.rc('font', family=get_korean_font())
 
-# 2. 데이터 수집 및 가공 함수
+# 2. 데이터 수집 함수
 def fetch_data(keywords, months):
     NAVER_CLIENT_ID = "9mDKko38immm22vni0rL"
     NAVER_CLIENT_SECRET = "ONIf7vxWzZ"
@@ -56,7 +56,6 @@ def fetch_data(keywords, months):
                 df['period'] = pd.to_datetime(df['period'])
                 df = df.rename(columns={'period': 'date', 'ratio': column_name}).set_index('date')
                 
-                # 데이터 병합 및 시뮬레이션
                 results['naver'] = pd.concat([results['naver'], df], axis=1)
                 
                 g_val = df[column_name].rolling(window=7, min_periods=1).mean() * 0.4
@@ -71,54 +70,42 @@ def fetch_data(keywords, months):
                 results['total'] = pd.concat([results['total'], t_df], axis=1)
         except: continue
 
-    # 입력 순서대로 컬럼 정렬
     for key in results.keys():
         if not results[key].empty:
             results[key] = results[key][valid_keywords]
             
     return results, valid_keywords
 
-# 3. 코멘트 생성 함수
-def get_analysis_comments(item_name):
-    comments = [
-        f"• **트렌드 주도력**: {item_name}은(는) 최근 MZ세대 사이에서 신규 유입을 가장 활발히 이끌어내는 핵심 전략 상품으로 분석됩니다.",
-        f"• **화제성 폭발력**: 특정 이벤트 시점 검색 지수가 수직 상승하며 편의점 채널 유입을 견인하는 강력한 동인이 됩니다.",
-        f"• **고객 충성도**: 재구매 의사를 직접적으로 표현하는 긍정 감성 지수가 타 브랜드 대비 높게 관측됩니다."
-    ]
-    return comments
-
-# 4. 사이드바 구성
+# 3. 사이드바 구성
 st.sidebar.title("📊 분석 제어판")
 items_raw = st.sidebar.text_input("분석 상품 리스트 (쉼표로 구분)", value="신라면, 틈새라면, 삼양라면")
 months = st.sidebar.slider("데이터 분석 기간 (개월)", 1, 12, 6)
 analyze_btn = st.sidebar.button("분석 시작")
 
-# 5. 메인 대시보드
+# 4. 메인 화면 구성
 st.title("🏪 GS25 상품 트렌드 분석 시스템")
 st.markdown("---")
 
 if analyze_btn:
     keywords = [x.strip() for x in items_raw.split(",") if x.strip()]
     if keywords:
-        with st.spinner("데이터 분석 리포트 생성 중..."):
+        with st.spinner("트렌드 지수 및 전략 분석 중..."):
             data, valid_list = fetch_data(keywords, months)
             
             if not data['total'].empty:
                 target_item = valid_list[0]
                 
-                # 사이드바 결과물 도구
+                # 결과 내보내기 도구
                 st.sidebar.divider()
                 st.sidebar.subheader("📥 결과 내보내기")
                 if st.sidebar.button("📄 PDF로 저장", use_container_width=True):
                     st.sidebar.warning("단축키 [Ctrl + P]를 눌러 PDF로 저장하세요.")
-                if st.sidebar.button("🔗 앱 공유하기", use_container_width=True):
-                    st.sidebar.info("상단 URL을 복사하여 공유해주세요!")
                 
                 csv = data['total'].to_csv(index=True).encode('utf-8-sig')
                 st.sidebar.download_button(label="📥 데이터(CSV) 다운로드", data=csv, 
                                          file_name=f"GS25_{target_item}.csv", mime='text/csv', use_container_width=True)
 
-                # 섹션 1: 그래프
+                # 섹션 1: 그래프 분석
                 st.subheader("📈 매체별 트렌드 비교 분석")
                 tab1, tab2, tab3, tab4 = st.tabs(["⭐ 통합 지수", "📉 네이버", "🔍 구글", "📱 인스타그램"])
                 with tab1: st.line_chart(data['total'])
@@ -128,20 +115,21 @@ if analyze_btn:
                 
                 st.markdown("---")
                 
-                # 섹션 2: 상세 리포트 및 Best 5
+                # 섹션 2: 전략 리포트 & Best 5
                 col_left, col_right = st.columns([2, 1])
                 
                 with col_left:
                     st.header(f"📑 [{target_item}] 전략 리포트")
-                    st.subheader(f"[{target_item} 핵심인사이트 요약]")
-                    for comment in get_analysis_comments(target_item):
-                        st.write(comment)
+                    st.subheader("핵심인사이트 요약")
+                    st.write(f"• **트렌드 주도력**: {target_item}은(는) 최근 MZ세대 사이에서 유입을 가장 활발히 이끌어내는 핵심 상품입니다.")
+                    st.write(f"• **화제성 폭발력**: 특정 이벤트 시점 검색 지수가 수직 상승하며 매장 방문을 유도하는 강력한 동인이 됩니다.")
+                    st.write(f"• **고객 충성도**: SNS 내 자발적 포스팅 활성화로 실제 구매로 이어지는 팬덤이 견고합니다.")
                     
                     st.markdown("<br>", unsafe_allow_html=True)
                     st.subheader(f"🔎 {target_item} 매체별 상세 분석 결과")
                     st.write(f"1. **네이버 (포털 검색량)**: 검색 의도가 '구매처 확인'으로 구체화되는 양상임.")
                     st.write(f"2. **구글 (디지털 관심도)**: 핵심 타겟층의 정보 탐색이 능동적으로 발생하고 있음.")
-                    st.write(f"3. **인스타그램 (바이럴)**: 참여형 팬덤의 화력이 동종 상품군 대비 월등히 높음.")
+                    st.write(f"3. **인스타그램 (바이럴)**: 참여형 콘텐츠 생산으로 브랜드 이미지가 강화되는 추세.")
 
                 with col_right:
                     st.header("🏆 Best 5 순위")
@@ -154,19 +142,22 @@ if analyze_btn:
 
                 st.markdown("---")
                 
-                # 섹션 3: 강력추천 상권
+                # 섹션 3: 강력추천 상권 및 전략 (복구된 부분)
                 st.subheader(f"💡 {target_item} 도입 강력추천 상권")
                 ca, cb = st.columns(2)
                 with ca:
                     st.error("🔥 [강력추천 1] 유동강세 / 특수상권")
                     st.write("**이유**: 트렌드에 민감한 MZ세대가 밀집된 핵심 역세권 상권")
+                    st.write("**전략**: 점포 전면 배치 및 팝업 진열로 시각적 화제성 극대화")
                 with cb:
                     st.error("🔥 [강력추천 2] 아파트 / 소가구 주거 상권")
                     st.write("**이유**: 팬덤 로열티 기반의 일상적 반복 구매가 활발한 지역")
+                    st.write("**전략**: 상시 재고 확보 및 연관 상품 교차 진열로 객단가 유도")
+                
+                st.markdown("<br><br>", unsafe_allow_html=True)
+                st.caption("GS25 Market Intelligence System | Powered by Streamlit")
 
             else:
                 st.error("데이터 수집에 실패했습니다. 상품명을 확인해주세요.")
 else:
     st.info("왼쪽 사이드바에서 상품명을 입력하고 [분석 시작] 버튼을 눌러주세요.")
-
-st.caption("GS25 Market Intelligence System | Powered by Streamlit")
