@@ -139,15 +139,22 @@ if analyze_btn:
             
             if not data['naver'].empty:
                 # 사이드바 결과물 다운로드 및 공유
-                st.sidebar.divider()
-                st.sidebar.subheader("📥 결과 내보내기")
-                if st.sidebar.button("🔗 앱 공유하기", use_container_width=True):
-                    st.sidebar.info("상단 URL을 복사하여 공유해주세요!")
-                
-                csv = data['total'].to_csv(index=True).encode('utf-8-sig')
-                st.sidebar.download_button(label="📥 데이터(CSV) 다운로드", data=csv, 
-                                         file_name=f"GS25_{target_item}.csv", mime='text/csv', use_container_width=True)
+st.sidebar.divider()
+st.sidebar.subheader("📥 결과 내보내기")
 
+# 1. PDF 저장 버튼 (새로 추가됨)
+if st.sidebar.button("📄 PDF로 저장", use_container_width=True):
+    st.sidebar.warning("단축키 [Ctrl + P]를 눌러 'PDF로 저장'을 선택하세요.")
+
+# 2. 앱 공유 버튼
+if st.sidebar.button("🔗 앱 공유하기", use_container_width=True):
+    st.sidebar.info("상단 URL을 복사하여 공유해주세요!")
+
+# 3. CSV 다운로드 버튼
+csv = data['total'].to_csv(index=True).encode('utf-8-sig')
+st.sidebar.download_button(label="📥 데이터(CSV) 다운로드", data=csv, 
+                         file_name=f"GS25_{target_item}.csv", mime='text/csv', use_container_width=True)
+               
                 # 섹션 1: 매체별 그래프 (입력 순서 유지됨)
                 st.subheader("📈 매체별 트렌드 비교 분석")
                 tab1, tab2, tab3, tab4 = st.tabs(["⭐ 통합 지수", "📉 네이버", "🔍 구글", "📱 인스타그램"])
