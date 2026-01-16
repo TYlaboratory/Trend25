@@ -83,7 +83,7 @@ if analyze_btn:
                 st.sidebar.subheader("📥 결과 내보내기")
                 
                 # PDF 저장 안내 버튼 (안전한 방식)
-                if st.sidebar.button("📄 PDF 저장 가이드", use_container_width=True):
+                if st.sidebar.button("crtl+p 눌러 pdf로 저장", use_container_width=True):
                     st.sidebar.success("💡 **Ctrl + P**를 누르세요!")
                     st.sidebar.write("1. 인쇄창에서 대상을 **'PDF로 저장'**으로 변경")
                     st.sidebar.write("2. 설정에서 **'배경 그래픽'** 체크")
