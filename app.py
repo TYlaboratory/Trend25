@@ -189,7 +189,6 @@ if analyze_btn:
                 st.warning(f"""
                 1. **상품군 핵심 리스크**: {final_risks[0]}
                 2. **운영/마케팅 주의**: {final_risks[1]}
-                3. **기타 관리 요소**: {final_risks[2]}
                 """)
 
                 # 섹션 3: 추천 상권
