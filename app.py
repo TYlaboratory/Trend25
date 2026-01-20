@@ -19,6 +19,23 @@ def get_korean_font():
 
 plt.rc('font', family=get_korean_font())
 
+# 네이버 검색 API 호출 함수 (뉴스/동영상용)
+def get_naver_search(category, query, display=3):
+    client_id = "9mDKko38immm22vni0rL"
+    client_secret = "ONIf7vxWzZ"
+    encText = urllib.parse.quote(query)
+    url = f"https://openapi.naver.com/v1/search/{category}.json?query={encText}&display={display}&sort=sim"
+    
+    req = urllib.request.Request(url)
+    req.add_header("X-Naver-Client-Id", client_id)
+    req.add_header("X-Naver-Client-Secret", client_secret)
+    
+    try:
+        res = urllib.request.urlopen(req, context=ssl._create_unverified_context())
+        return json.loads(res.read().decode("utf-8"))['items']
+    except:
+        return []
+
 # 2. 데이터 수집 함수
 def fetch_data(keywords, months):
     NAVER_CLIENT_ID = "9mDKko38immm22vni0rL"
@@ -78,16 +95,11 @@ if analyze_btn:
             if not data['total'].empty:
                 target_item = valid_list[0]
                 
-                # --- [수정] 사이드바 결과물 도구함 ---
+                # --- 사이드바 결과물 도구함 ---
                 st.sidebar.divider()
                 st.sidebar.subheader("📥 결과 내보내기")
-                
-                # PDF 저장 안내 버튼 (안전한 방식)
                 if st.sidebar.button("crtl+p 눌러 pdf로 저장", use_container_width=True):
                     st.sidebar.success("💡 **Ctrl + P**를 누르세요!")
-                    st.sidebar.write("1. 인쇄창에서 대상을 **'PDF로 저장'**으로 변경")
-                    st.sidebar.write("2. 설정에서 **'배경 그래픽'** 체크")
-                    st.sidebar.write("3. 저장 버튼 클릭")
                 
                 csv = data['total'].to_csv(index=True).encode('utf-8-sig')
                 st.sidebar.download_button(label="📥 데이터(CSV) 다운로드", data=csv, 
@@ -117,17 +129,6 @@ if analyze_btn:
                     st.write("2. **구글**: 능동적인 정보 탐색 활발")
                     st.write("3. **인스타그램**: 참여형 팬덤 화력 최상위권")
 
-# ⚠️ 도입 시 주의사항 (리스크 분석) 섹션 추가
-    st.markdown("---") # 구분선
-    st.subheader(f"⚠️ {keywords[0]} 도입 시 주의사항")
-    
-    # 가독성을 위해 st.error 또는 st.warning 박스를 사용합니다.
-    st.error(f"""
-    1. **화제성 소멸 리스크**: {keywords[0]}의 트렌드 주기가 매우 짧아 초기 물량 확보 후 적기 재고 관리가 필수입니다.
-    2. **공급 불안정성**: SNS 대란 발생 시 원재료 수급에 따른 품절 사태가 고객 불만으로 이어질 수 있습니다.
-    3. **미투(Me-too) 상품 유입**: 경쟁사의 유사 상품 출시가 빨라 차별화된 소구점 유지가 관건입니다.
-    4. **가격 민감도**: 편의점 특성상 유사 카테고리 대비 가격 경쟁력이 떨어질 경우 이탈률이 높을 수 있습니다.
-    """)
                 with col_right:
                     st.header("🏆 Best 5 순위")
                     avg_scores = data['total'].mean().sort_values(ascending=False)
@@ -136,8 +137,15 @@ if analyze_btn:
                         if i >= 5: break
                         st.success(f"{medals[i]} **{name}**")
 
+                # --- 신규 섹션: 리스크 분석 ---
                 st.markdown("---")
-                
+                st.subheader(f"⚠️ {target_item} 도입 시 주의사항")
+                st.warning(f"""
+                1. **화제성 소멸 리스크**: {target_item}은(는) 트렌드 주기가 매우 짧아 초기 물량 확보 후 적정 재고 유지가 관건입니다.
+                2. **공급 불안정성**: SNS 이슈 발생 시 갑작스러운 품절로 인한 고객 불만이 발생할 수 있습니다.
+                3. **미투(Me-too) 상품 유입**: 경쟁사의 유사 상품 출시가 빨라 오리지널리티 마케팅이 중요합니다.
+                """)
+
                 # 섹션 3: 강력추천 상권 및 전략
                 st.subheader(f"💡 {target_item} 도입 강력추천 상권")
                 ca, cb = st.columns(2)
@@ -149,6 +157,32 @@ if analyze_btn:
                     st.error("🔥 [강력추천 2] 주거 밀집 상권")
                     st.write("**이유**: 일상적 반복 구매가 활발한 지역")
                     st.write("**전략**: 상시 재고 확보로 결품 방지")
+
+                # --- 신규 섹션: 실시간 추천 동영상 및 뉴스 ---
+                st.markdown("---")
+                st.subheader(f"🎬 {target_item} 실시간 추천 콘텐츠")
+                v_col, n_col = st.columns(2)
+                
+                with v_col:
+                    st.write("**📽️ 인기 동영상 TOP 3**")
+                    videos = get_naver_search('video', target_item)
+                    if videos:
+                        for v in videos:
+                            title = v['title'].replace('<b>','').replace('</b>','')
+                            st.info(f"▶ [{title}]({v['link']})")
+                    else:
+                        st.write("관련 영상을 찾을 수 없습니다.")
+
+                with n_col:
+                    st.write("**📰 관련 최신 뉴스**")
+                    news = get_naver_search('news', target_item)
+                    if news:
+                        for n in news:
+                            title = n['title'].replace('<b>','').replace('</b>','').replace('&quot;','"')
+                            st.info(f"📰 [{title}]({n['link']})")
+                    else:
+                        st.write("관련 뉴스를 찾을 수 없습니다.")
+
             else:
                 st.error("데이터 수집 실패")
 else:
