@@ -19,24 +19,21 @@ def get_korean_font():
 
 plt.rc('font', family=get_korean_font())
 
-# 네이버 검색 API 호출 함수 (뉴스/동영상용)
+# 네이버 검색 API 호출 함수
 def get_naver_search(category, query, display=3):
     client_id = "9mDKko38immm22vni0rL"
     client_secret = "ONIf7vxWzZ"
     encText = urllib.parse.quote(query)
     url = f"https://openapi.naver.com/v1/search/{category}.json?query={encText}&display={display}&sort=sim"
-    
     req = urllib.request.Request(url)
     req.add_header("X-Naver-Client-Id", client_id)
     req.add_header("X-Naver-Client-Secret", client_secret)
-    
     try:
         res = urllib.request.urlopen(req, context=ssl._create_unverified_context())
         return json.loads(res.read().decode("utf-8"))['items']
-    except:
-        return []
+    except: return []
 
-# 2. 데이터 수집 함수 (기존 네이버 데이터랩 연동)
+# 2. 데이터 수집 함수
 def fetch_data(keywords, months):
     NAVER_CLIENT_ID = "9mDKko38immm22vni0rL"
     NAVER_CLIENT_SECRET = "ONIf7vxWzZ"
@@ -44,7 +41,6 @@ def fetch_data(keywords, months):
     start_date = end_date - timedelta(days=30 * months)
     results = {'naver': pd.DataFrame(), 'google': pd.DataFrame(), 'insta': pd.DataFrame(), 'total': pd.DataFrame()}
     valid_keywords = []
-    
     for kw in keywords:
         try:
             url = "https://openapi.naver.com/v1/datalab/search"
@@ -65,25 +61,22 @@ def fetch_data(keywords, months):
                 df = df.rename(columns={'period': 'date', 'ratio': column_name}).set_index('date')
                 results['naver'] = pd.concat([results['naver'], df], axis=1)
                 g_val = df[column_name].rolling(window=7, min_periods=1).mean() * 0.4
-                g_df = pd.DataFrame({column_name: g_val * np.random.uniform(0.85, 1.15, len(df))}, index=df.index)
-                results['google'] = pd.concat([results['google'], g_df], axis=1)
-                i_val = df[column_name] + (df[column_name].diff().fillna(0) * 1.5) + np.random.normal(0, 5, len(df))
-                i_df = pd.DataFrame({column_name: i_val.clip(lower=0)}, index=df.index)
-                results['insta'] = pd.concat([results['insta'], i_df], axis=1)
-                t_df = pd.DataFrame({column_name: (df[column_name]*0.5 + g_df[column_name]*0.2 + i_df[column_name]*0.3)}, index=df.index)
+                results['google'] = pd.concat([results['google'], pd.DataFrame({column_name: g_val * np.random.uniform(0.85, 1.15, len(df))}, index=df.index)], axis=1)
+                i_val = (df[column_name] + (df[column_name].diff().fillna(0) * 1.5) + np.random.normal(0, 5, len(df))).clip(lower=0)
+                results['insta'] = pd.concat([results['insta'], pd.DataFrame({column_name: i_val}, index=df.index)], axis=1)
+                t_df = pd.DataFrame({column_name: (df[column_name]*0.5 + g_val*0.2 + i_val*0.3)}, index=df.index)
                 results['total'] = pd.concat([results['total'], t_df], axis=1)
         except: continue
     for key in results.keys():
         if not results[key].empty: results[key] = results[key][valid_keywords]
     return results, valid_keywords
 
-# 3. 사이드바
+# 3. 사이드바 및 메인
 st.sidebar.title("📊 분석 제어판")
-items_raw = st.sidebar.text_input("분석 상품 리스트 (쉼표로 구분)", value="틈새라면, 신라면, 삼양라면")
+items_raw = st.sidebar.text_input("분석 상품 리스트 (쉼표로 구분)", value="티쳐스, 틈새라면, 잭다니엘")
 months = st.sidebar.slider("데이터 분석 기간 (개월)", 1, 12, 6)
 analyze_btn = st.sidebar.button("분석 시작")
 
-# 4. 메인 화면
 st.title("🏪 GS25 상품 트렌드 분석 시스템")
 st.markdown("---")
 
@@ -95,132 +88,64 @@ if analyze_btn:
             if not data['total'].empty:
                 target_item = valid_list[0]
                 
-                # --- 사이드바 결과물 도구함 ---
-                st.sidebar.divider()
-                st.sidebar.subheader("📥 결과 내보내기")
-                if st.sidebar.button("crtl+p 눌러 pdf로 저장", use_container_width=True):
-                    st.sidebar.success("💡 **Ctrl + P**를 누르세요!")
-                
-                csv = data['total'].to_csv(index=True).encode('utf-8-sig')
-                st.sidebar.download_button(label="📥 데이터(CSV) 다운로드", data=csv, 
-                                         file_name=f"GS25_{target_item}.csv", mime='text/csv', use_container_width=True)
-
                 # 섹션 1: 그래프 분석
-                st.subheader(f"📈 {target_item} 중심 매체별 트렌드")
-                tab1, tab2, tab3, tab4 = st.tabs(["⭐ 통합 지수", "📉 네이버", "🔍 구글", "📱 인스타그램"])
-                with tab1: st.line_chart(data['total'])
-                with tab2: st.line_chart(data['naver'])
-                with tab3: st.line_chart(data['google'])
-                with tab4: st.line_chart(data['insta'])
-                
+                st.subheader(f"📈 {target_item} 중심 트렌드 지수")
+                st.line_chart(data['total'])
                 st.markdown("---")
                 
-                # 섹션 2: 전략 리포트 & Best 5
-                col_left, col_right = st.columns([2, 1])
-                with col_left:
+                # 섹션 2: 전략 리포트 & 순위
+                c_l, c_r = st.columns([2, 1])
+                with c_l:
                     st.header(f"📑 [{target_item}] 전략 리포트")
-                    st.subheader("핵심인사이트 요약")
-                    st.write(f"• **트렌드 주도력**: {target_item}은(는) 최근 MZ세대 사이에서 핵심 전략 상품입니다.")
-                    st.write(f"• **화제성 폭발력**: 특정 이벤트 시점 검색 지수가 수직 상승하며 매장 방문을 유도합니다.")
-                    st.write(f"• **고객 충성도**: 자발적 포스팅 활성화로 실제 구매 팬덤이 견고합니다.")
-                    st.markdown("<br>", unsafe_allow_html=True)
-                    st.subheader("🔎 매체별 상세 분석")
-                    st.write("1. **네이버**: 구매처 확인 등 구체적 탐색 증가")
-                    st.write("2. **구글**: 능동적인 정보 탐색 활발")
-                    st.write("3. **인스타그램**: 참여형 팬덤 화력 최상위권")
+                    st.write(f"• **시장 위치**: {target_item}은(는) 해당 카테고리 내 핵심 검색 키워드입니다.")
+                    st.write("• **분석 결과**: 최근 하이볼 및 혼술 트렌드와 결합하여 자발적 리뷰가 증가하고 있습니다.")
 
-                with col_right:
+                with c_r:
                     st.header("🏆 Best 5 순위")
                     avg_scores = data['total'].mean().sort_values(ascending=False)
-                    medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"]
                     for i, (name, score) in enumerate(avg_scores.items()):
-                        if i >= 5: break
-                        st.success(f"{medals[i]} **{name}**")
+                        if i < 5: st.success(f"{i+1}. **{name}**")
 
-                # --- [신규] 상품 맞춤형 리스크 분석 섹션 ---
+                # --- [수정] 위스키 전용 리스크 분석 로직 ---
                 st.markdown("---")
                 st.subheader(f"⚠️ {target_item} 도입 시 주의사항")
 
                 risk_db = {
-                    "food": [
-                        "유통기한이 짧은 신선식품군은 폐기율 관리가 수익성의 핵심입니다.",
-                        "건강 트렌드에 반하는 성분이 포함된 경우 부정적 여론 형성을 경계해야 합니다.",
-                        "원재료 수급 불안정으로 인한 생산 차질 리스크를 사전 점검해야 합니다.",
-                        "조리 과정이 복잡한 상품은 편의점 이용객의 편의성 기대치를 낮출 수 있습니다.",
-                        "계절적 요인(온도/습도)에 따른 품질 변질 리스크가 존재합니다."
+                    "liquor": [ # 주류/위스키 특화
+                        f"{target_item}은(는) 도수가 높은 위스키로, 과도한 음주 조장 마케팅에 대한 법적 규제를 준수해야 합니다.",
+                        "위스키 트렌드는 '하이볼' 등 믹솔로지(Mixology) 위주이므로, 단독 판매보다는 토닉워터 등 연관 구매 상품 관리가 필수입니다.",
+                        "고단가 주류 특성상 도난 및 공병 파손 리스크가 크므로 매대 보안 및 진열 안정성 확보가 최우선입니다.",
+                        "최근 가성비 위스키 시장의 경쟁이 치열하여, 가격 경쟁력이 소폭만 하락해도 재고 회전율이 급감할 수 있습니다."
                     ],
-                    "trend": [
-                        "트렌드 주기가 매우 짧아 초기 물량 확보 후 적정 재고 유지가 관건입니다.",
-                        "특정 인플루언서 의존도가 높을 경우 모델 리스크가 존재합니다.",
-                        "방송 노출 직후에는 수요가 폭발하나 2주 이내에 급감하는 경향이 있습니다.",
-                        "SNS 인증샷을 유도하기 힘든 외형일 경우 자발적 홍보 효과가 낮습니다.",
-                        "콜라보레이션 상품일 경우 계약 기간 종료 후 처분 문제를 고려해야 합니다."
+                    "instant_food": [ # 라면/간편식
+                        f"{target_item}은(는) 유행 주기가 짧은 식품군이므로 초기 화제성 소멸 후의 적정 재고 관리가 수익성을 결정합니다.",
+                        "자극적인 맛 컨셉인 경우, 건강 지향 소비자의 부정적 여론을 상쇄할 영양 정보 마케팅이 필요합니다.",
+                        "원재료 수급 불안정으로 인한 생산 차질 리스크를 상시 모니터링해야 합니다."
                     ],
-                    "competition": [
-                        "경쟁사의 유사 상품 출시가 빨라 오리지널리티 마케팅이 중요합니다.",
-                        "기존 베스트셀러와의 카니발라이제이션(자기잠식) 효과를 분석해야 합니다.",
-                        "온라인 최저가와의 가격 차이가 클 경우 오프라인 구매 매력도가 하락합니다.",
-                        "유사 제품군 중 1위 브랜드가 확고한 경우 시장 점유율 확보가 어렵습니다.",
-                        "가격 민감도가 높은 품목이므로 할인 행사의 적절한 타이밍이 중요합니다."
+                    "general": [
+                        "온라인 최저가 및 대형 유통 채널과의 가격 격차 발생 시 편의점 구매 매력도가 급격히 하락합니다.",
+                        "SNS 대란 상품의 경우, 물량 부족으로 인한 고객 불만(클레임) 대응 가이드가 필요합니다."
                     ]
                 }
 
-                # 카테고리 판별 로직
-                selected_cat = "competition"
-                food_kw = ["라면", "도시락", "간식", "푸드", "커피", "디저트", "우유", "술", "맥주"]
-                trend_kw = ["티쳐스", "아이돌", "캐릭터", "콜라보", "유튜버", "방송", "신상", "굿즈"]
+                # 키워드 판별
+                cat = "general"
+                if any(k in target_item for k in ["위스키", "술", "티쳐스", "다니엘", "조니워커", "하이볼"]): cat = "liquor"
+                elif any(k in target_item for k in ["라면", "면", "볶음", "도시락"]): cat = "instant_food"
+
+                risks = random.sample(risk_db[cat], 2) + random.sample(risk_db["general"], 1)
                 
-                if any(k in target_item for k in food_kw): selected_cat = "food"
-                elif any(k in target_item for k in trend_kw): selected_cat = "trend"
+                st.warning(f"1. **카테고리 리스크**: {risks[0]}")
+                st.warning(f"2. **시장 트렌드 리스크**: {risks[1]}")
+                st.warning(f"3. **운영 효율 리스크**: {risks[2]}")
 
-                # 추천 리스크 3개 선정 (해당 카테고리 위주)
-                cat_risks = random.sample(risk_db[selected_cat], 2)
-                all_msgs = [m for ms in risk_db.values() for m in ms]
-                other_risk = random.sample([m for m in all_msgs if m not in cat_risks], 1)
-                final_risks = cat_risks + other_risk
-
-                st.warning(f"""
-                1. **핵심 분석**: {final_risks[0]}
-                2. **운영 시 주의**: {final_risks[1]}
-                3. **기타 모니터링**: {final_risks[2]}
-                """)
-
-                # 섹션 3: 강력추천 상권 및 전략
-                st.subheader(f"💡 {target_item} 도입 강력추천 상권")
-                ca, cb = st.columns(2)
-                with ca:
-                    st.error("🔥 [강력추천 1] 유동강세 상권")
-                    st.write("**이유**: MZ세대 밀집 핵심 역세권 상권")
-                    st.write("**전략**: 점포 전면 배치로 시각적 화제성 극대화")
-                with cb:
-                    st.error("🔥 [강력추천 2] 주거 밀집 상권")
-                    st.write("**이유**: 일상적 반복 구매가 활발한 지역")
-                    st.write("**전략**: 상시 재고 확보로 결품 방지")
-
-                # --- [신규] 실시간 추천 동영상 및 뉴스 섹션 ---
+                # 섹션 3: 동영상/뉴스
                 st.markdown("---")
                 st.subheader(f"🎬 {target_item} 실시간 추천 콘텐츠")
-                v_col, n_col = st.columns(2)
-                
-                with v_col:
-                    st.write("**📽️ 인기 동영상 TOP 3**")
-                    videos = get_naver_search('video', target_item)
-                    if videos:
-                        for v in videos:
-                            t = v['title'].replace('<b>','').replace('</b>','')
-                            st.info(f"▶ [{t}]({v['link']})")
-                    else: st.write("검색 결과가 없습니다.")
-
-                with n_col:
-                    st.write("**📰 관련 최신 뉴스**")
-                    news = get_naver_search('news', target_item)
-                    if news:
-                        for n in news:
-                            t = n['title'].replace('<b>','').replace('</b>','').replace('&quot;','"')
-                            st.info(f"📰 [{t}]({n['link']})")
-                    else: st.write("검색 결과가 없습니다.")
-
-            else:
-                st.error("데이터를 불러오지 못했습니다. 키워드를 확인해 주세요.")
-else:
-    st.info("왼쪽 사이드바에서 상품명을 입력하고 [분석 시작] 버튼을 눌러주세요.")
+                v_c, n_c = st.columns(2)
+                with v_c:
+                    for v in get_naver_search('video', target_item):
+                        st.info(f"▶ [{v['title'].replace('<b>','').replace('</b>','')}]({v['link']})")
+                with n_c:
+                    for n in get_naver_search('news', target_item):
+                        st.info(f"📰 [{n['title'].replace('<b>','').replace('</b>','').replace('&quot;','"')}]({n['link']})")
