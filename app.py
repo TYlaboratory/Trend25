@@ -95,9 +95,13 @@ if analyze_btn:
             if not data['total'].empty:
                 target_item = valid_list[0]
                 
-                # --- 사이드바 결과물 도구함 ---
+                # --- 사이드바 결과물 도구함 (요청하신 문구 추가) ---
                 st.sidebar.divider()
                 st.sidebar.subheader("📥 결과 내보내기")
+                
+                # 요청하신 문구 강조
+                st.sidebar.info("💡 **crtl+P 눌러봐요?**")
+                
                 csv = data['total'].to_csv(index=True).encode('utf-8-sig')
                 st.sidebar.download_button(label="📥 데이터(CSV) 다운로드", data=csv, 
                                          file_name=f"GS25_{target_item}.csv", mime='text/csv', use_container_width=True)
@@ -133,7 +137,7 @@ if analyze_btn:
                         if i >= 5: break
                         st.success(f"{medals[i]} **{name}**")
 
-                # --- [수정] 상품 맞춤형 리스크 분석 섹션 (중복 방지 로직 적용) ---
+                # --- 상품 맞춤형 리스크 분석 섹션 ---
                 st.markdown("---")
                 st.subheader(f"⚠️ {target_item} 도입 시 주의사항")
 
@@ -174,16 +178,12 @@ if analyze_btn:
                 elif any(k in target_item for k in food_kw): selected_cat = "food"
                 elif any(k in target_item for k in ent_kw): selected_cat = "entertainment"
 
-                # --- 중복 제거 핵심 로직 ---
-                # 1. 해당 카테고리에서 2개 추출
+                # 중복 제거 로직
                 cat_pool = risk_db[selected_cat]
                 cat_risks = random.sample(cat_pool, 2)
-                
-                # 2. 전체 리스트에서 이미 뽑힌 2개를 제외한 나머지에서 1개 추출
                 all_msgs = [m for ms in risk_db.values() for m in ms]
                 unique_remaining_pool = [m for m in all_msgs if m not in cat_risks]
                 other_risk = random.sample(unique_remaining_pool, 1)
-                
                 final_risks = cat_risks + other_risk
 
                 st.warning(f"""
