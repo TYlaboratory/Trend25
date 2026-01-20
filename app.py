@@ -201,18 +201,30 @@ if analyze_btn:
                     st.error("🔥 [강력추천 2] 대규모 주거지 상권")
                     st.write("**전략**: 목적성 구매가 높은 지역이므로 앱 예약 시스템 활용 권장")
 
-                # 섹션 4: 실시간 콘텐츠
+                # --- [유튜브 & 뉴스 섹션] ---
                 st.markdown("---")
-                st.subheader(f"🎬 {target_item} 실시간 추천 콘텐츠")
+                st.header(f"🔥 {target_item} 실시간 핫 콘텐츠")
                 v_col, n_col = st.columns(2)
+                
                 with v_col:
-                    st.write("**📽️ 인기 동영상 TOP 3**")
-                    for v in get_naver_search('video', target_item):
-                        st.info(f"▶ [{v['title'].replace('<b>','').replace('</b>','')}]({v['link']})")
+                    st.subheader("📽️ 유튜브 인기 숏츠 Best 5")
+                    shorts = get_youtube_shorts(target_item, display=5)
+                    if shorts:
+                        for i, v in enumerate(shorts):
+                            t = v['title'].replace('<b>','').replace('</b>','')
+                            st.info(f"{i+1}. **[{t}]({v['link']})**")
+                    else:
+                        st.write("유튜브 데이터를 불러올 수 없습니다.")
+
                 with n_col:
-                    st.write("**📰 관련 최신 뉴스**")
-                    for n in get_naver_search('news', target_item):
-                        st.info(f"📰 [{n['title'].replace('<b>','').replace('</b>','').replace('&quot;','"')}]({n['link']})")
+                    st.subheader("📰 최신 관련 뉴스 Top 5")
+                    news = get_naver_news(target_item, display=5)
+                    if news:
+                        for i, n in enumerate(news):
+                            t = n['title'].replace('<b>','').replace('</b>','').replace('&quot;','"')
+                            st.success(f"{i+1}. **[{t}]({n['link']})**")
+                    else:
+                        st.write("관련 뉴스가 없습니다.")
 
             else:
                 st.error("데이터를 불러오지 못했습니다. 키워드를 확인해 주세요.")
