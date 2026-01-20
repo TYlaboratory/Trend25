@@ -100,7 +100,7 @@ if analyze_btn:
                 st.sidebar.subheader("📥 결과 내보내기")
                 
                 # 요청하신 문구 강조
-                st.sidebar.info("💡 **crtl+P 눌러봐요?**")
+                st.sidebar.info("💡 **crtl+P 눌러볼래요?**")
                 
                 csv = data['total'].to_csv(index=True).encode('utf-8-sig')
                 st.sidebar.download_button(label="📥 데이터(CSV) 다운로드", data=csv, 
