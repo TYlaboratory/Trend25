@@ -88,7 +88,7 @@ def fetch_data(keywords, months):
 
 # 3. 사이드바 제어판
 st.sidebar.title("📊 분석 제어판")
-items_raw = st.sidebar.text_input("분석 상품 리스트 (쉼표로 구분)", value="티쳐스, 플레이브, 틈새라면")
+items_raw = st.sidebar.text_input("분석 상품 리스트 (쉼표로 구분)", value="신라면, 진라면, 틈새라면")
 months = st.sidebar.slider("데이터 분석 기간 (개월)", 1, 12, 6)
 analyze_btn = st.sidebar.button("분석 시작")
 
