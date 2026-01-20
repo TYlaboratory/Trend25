@@ -19,40 +19,12 @@ def get_korean_font():
 
 plt.rc('font', family=get_korean_font())
 
-# --- [중요] 유튜브 숏츠 검색 함수 ---
-def get_youtube_shorts(query, display=5):
-    client_id = "9mDKko38immm22vni0rL"
-    client_secret = "ONIf7vxWzZ"
-    
-    # 유튜브 숏츠 위주 검색을 위해 키워드 조합
-    search_query = f"{query} shorts 숏츠"
-    encText = urllib.parse.quote(search_query)
-    
-    # 네이버 동영상 API를 통해 유튜브 링크만 필터링하여 수집
-    url = f"https://openapi.naver.com/v1/search/video.json?query={encText}&display=30&sort=sim"
-    
-    req = urllib.request.Request(url)
-    req.add_header("X-Naver-Client-Id", client_id)
-    req.add_header("X-Naver-Client-Secret", client_secret)
-    
-    youtube_shorts = []
-    try:
-        res = urllib.request.urlopen(req, context=ssl._create_unverified_context())
-        items = json.loads(res.read().decode("utf-8"))['items']
-        for item in items:
-            if "youtube.com" in item['link'] or "youtu.be" in item['link']:
-                youtube_shorts.append(item)
-            if len(youtube_shorts) >= display: break
-    except:
-        pass
-    return youtube_shorts
-
-# --- [중요] 네이버 뉴스 검색 함수 ---
-def get_naver_news(query, display=5):
+# 네이버 검색 API 호출 함수 (뉴스/동영상용)
+def get_naver_search(category, query, display=3):
     client_id = "9mDKko38immm22vni0rL"
     client_secret = "ONIf7vxWzZ"
     encText = urllib.parse.quote(query)
-    url = f"https://openapi.naver.com/v1/search/news.json?query={encText}&display={display}&sort=date"
+    url = f"https://openapi.naver.com/v1/search/{category}.json?query={encText}&display={display}&sort=sim"
     
     req = urllib.request.Request(url)
     req.add_header("X-Naver-Client-Id", client_id)
@@ -64,7 +36,7 @@ def get_naver_news(query, display=5):
     except:
         return []
 
-# 2. 데이터 수집 함수 (네이버 데이터랩)
+# 2. 데이터 수집 함수 (네이버 데이터랩 연동 및 가공)
 def fetch_data(keywords, months):
     NAVER_CLIENT_ID = "9mDKko38immm22vni0rL"
     NAVER_CLIENT_SECRET = "ONIf7vxWzZ"
@@ -107,7 +79,7 @@ def fetch_data(keywords, months):
 
 # 3. 사이드바 제어판
 st.sidebar.title("📊 분석 제어판")
-items_raw = st.sidebar.text_input("분석 상품 리스트 (쉼표로 구분)", value="티쳐스, 플레이브, 틈새라면")
+items_raw = st.sidebar.text_input("분석 상품 리스트 (쉼표로 구분)", value="신라면, 진라면, 삼양라면")
 months = st.sidebar.slider("데이터 분석 기간 (개월)", 1, 12, 6)
 analyze_btn = st.sidebar.button("분석 시작")
 
@@ -123,73 +95,127 @@ if analyze_btn:
             if not data['total'].empty:
                 target_item = valid_list[0]
                 
-                # 사이드바 안내
+                # --- 사이드바 결과물 도구함 (요청하신 문구 추가) ---
                 st.sidebar.divider()
                 st.sidebar.subheader("📥 결과 내보내기")
+                
+                # 요청하신 문구 강조
                 st.sidebar.info("💡 **crtl+P 눌러봐요?**")
+                
                 csv = data['total'].to_csv(index=True).encode('utf-8-sig')
                 st.sidebar.download_button(label="📥 데이터(CSV) 다운로드", data=csv, 
                                          file_name=f"GS25_{target_item}.csv", mime='text/csv', use_container_width=True)
 
                 # 섹션 1: 그래프 분석
-                st.subheader(f"📈 {target_item} 매체별 트렌드")
-                st.line_chart(data['total'])
+                st.subheader(f"📈 {target_item} 중심 매체별 트렌드")
+                tab1, tab2, tab3, tab4 = st.tabs(["⭐ 통합 지수", "📉 네이버", "🔍 구글", "📱 인스타그램"])
+                with tab1: st.line_chart(data['total'])
+                with tab2: st.line_chart(data['naver'])
+                with tab3: st.line_chart(data['google'])
+                with tab4: st.line_chart(data['insta'])
                 
                 st.markdown("---")
                 
-                # 섹션 2: 전략 리포트 & 리스크 (중복 방지 로직 적용)
-                col_l, col_r = st.columns([2, 1])
-                with col_l:
+                # 섹션 2: 전략 리포트 & Best 5
+                col_left, col_right = st.columns([2, 1])
+                with col_left:
                     st.header(f"📑 [{target_item}] 전략 리포트")
-                    st.write(f"• **인사이트**: {target_item}은(는) 유튜브 숏츠를 중심으로 한 바이럴 확산이 뚜렷합니다.")
-                    
-                    st.subheader("⚠️ 도입 시 주의사항")
-                    risk_db = {
-                        "liquor": ["고단가 주류 매대 보안 필수", "하이볼 연관 상품 결품 주의", "가격 비교 이탈 경계", "주류법 준수"],
-                        "food": ["초기 물량 이후 수요 하락 대비", "성분 및 영양 정보 유의", "원재료 단가 리스크", "미투 상품 경계"],
-                        "entertainment": ["팬덤 집결 안전 관리", "리셀러 방지 및 클레임 관리", "비수기 수요 급락 주의", "IP 라이선스 기간 관리"],
-                        "general": ["온라인 최저가 비교 주의", "물류 부하 관리", "재구매율 모니터링", "진열 시인성 확보"]
-                    }
-                    cat = "general"
-                    if any(k in target_item for k in ["티쳐스", "위스키", "술"]): cat = "liquor"
-                    elif any(k in target_item for k in ["라면", "면", "도시락"]): cat = "food"
-                    elif any(k in target_item for k in ["플레이브", "아이돌", "굿즈"]): cat = "entertainment"
-                    
-                    final_risks = random.sample(risk_db[cat], 2) + random.sample([m for ms in risk_db.values() for m in ms if m not in risk_db[cat]], 1)
-                    for idx, r in enumerate(final_risks):
-                        st.warning(f"{idx+1}. {r}")
+                    st.subheader("핵심인사이트 요약")
+                    st.write(f"• **시장 위치**: {target_item}은(는) 해당 카테고리 내 주요 트렌드 지표를 선점하고 있습니다.")
+                    st.write(f"• **소비 패턴**: 특정 팬덤이나 목적성 구매를 기반으로 한 검색 유입이 매우 강력합니다.")
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    st.subheader("🔎 매체별 상세 분석")
+                    st.write("1. **네이버**: 실구매 및 매장 위치 확인 등 행동 위주 검색")
+                    st.write("2. **구글**: 커뮤니티 반응 및 심층 정보 탐색 활발")
+                    st.write("3. **인스타그램**: 비주얼 중심의 바이럴 확산 속도 최상위권")
 
-                with col_r:
-                    st.header("🏆 Best 5")
+                with col_right:
+                    st.header("🏆 Best 5 순위")
                     avg_scores = data['total'].mean().sort_values(ascending=False)
+                    medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"]
                     for i, (name, score) in enumerate(avg_scores.items()):
                         if i >= 5: break
-                        st.success(f"{i+1}위: **{name}**")
+                        st.success(f"{medals[i]} **{name}**")
 
-                # --- [유튜브 & 뉴스 섹션] ---
+                # --- 상품 맞춤형 리스크 분석 섹션 ---
                 st.markdown("---")
-                st.header(f"🔥 {target_item} 실시간 핫 콘텐츠")
+                st.subheader(f"⚠️ {target_item} 도입 시 주의사항")
+
+                risk_db = {
+                    "liquor": [
+                        f"{target_item}은(는) 고단가 주류로 매대 보안 및 신분증 확인 등 현장 운영 가이드 준수가 필수입니다.",
+                        "위스키 유행은 하이볼 등 믹솔로지 중심이므로 연관 상품(토닉, 얼음컵)의 동반 결품 리스크를 관리해야 합니다.",
+                        "가성비 위스키 시장의 경쟁이 치열해짐에 따라 온라인 가격 비교를 통한 고객 이탈을 경계해야 합니다.",
+                        "주류 광고법 및 홍보 규제에 따라 마케팅 채널 활용 시 법적 리스크를 사전 검토해야 합니다."
+                    ],
+                    "food": [
+                        f"{target_item}은(는) 유행 주기가 빠른 식품군이므로 신규 출시 초기 물량 이후의 수요 하락에 대비해야 합니다.",
+                        "자극적인 맛 컨셉의 경우 건강 지향 소비자들의 성분 이슈 제기 가능성이 있으므로 영양 정보 표기에 유의해야 합니다.",
+                        "원재료 수급에 따른 공급 단가 변동 리스크가 있으므로 안정적인 물량 확보가 최우선입니다.",
+                        "경쟁사의 유사 미투 상품 출시 속도가 매우 빠르므로 브랜드 독점권을 강화하는 마케팅이 요구됩니다."
+                    ],
+                    "entertainment": [
+                        f"{target_item} 팬덤의 강한 집결력을 고려할 때, 특정 점포로의 과도한 밀집에 따른 안전 관리 대책이 필요합니다.",
+                        "한정판 굿즈 등의 경우 리셀 시장의 프리미엄 형성으로 인해 실구매 고객들의 불만(클레임)이 발생할 수 있습니다.",
+                        "아티스트의 활동 비수기에는 검색량과 수요가 동반 하락할 수 있어 판매 기간(In-Out) 설정이 중요합니다.",
+                        "IP(지식재산권) 라이선스 종료 이후의 잔여 재고 처분 리스크를 사전에 설계해야 합니다."
+                    ],
+                    "general": [
+                        "온라인 최저가와의 가격 격차 발생 시 편의점 구매 매력도가 하락할 수 있습니다.",
+                        "물류 부하가 큰 대용량 상품의 경우 소규모 점포의 진열 효율성을 저해할 수 있습니다.",
+                        "단기 SNS 화제성에 비해 실제 재구매율이 낮을 수 있으니 장기 수요 예측에 주의해야 합니다.",
+                        "패키지 디자인의 시인성이 낮을 경우 경쟁 제품에 밀려 골든존 진열 효과를 보지 못할 수 있습니다."
+                    ]
+                }
+
+                # 정밀 카테고리 판별
+                selected_cat = "general"
+                liquor_kw = ["티쳐스", "위스키", "술", "맥주", "와인", "잭다니엘", "조니워커", "발렌타인", "하이볼"]
+                food_kw = ["라면", "면", "볶음", "도시락", "김밥", "간식", "디저트"]
+                ent_kw = ["플레이브", "아이돌", "캐릭터", "콜라보", "방송", "유튜버", "굿즈", "연예인"]
+
+                if any(k in target_item for k in liquor_kw): selected_cat = "liquor"
+                elif any(k in target_item for k in food_kw): selected_cat = "food"
+                elif any(k in target_item for k in ent_kw): selected_cat = "entertainment"
+
+                # 중복 제거 로직
+                cat_pool = risk_db[selected_cat]
+                cat_risks = random.sample(cat_pool, 2)
+                all_msgs = [m for ms in risk_db.values() for m in ms]
+                unique_remaining_pool = [m for m in all_msgs if m not in cat_risks]
+                other_risk = random.sample(unique_remaining_pool, 1)
+                final_risks = cat_risks + other_risk
+
+                st.warning(f"""
+                1. **상품군 핵심 리스크**: {final_risks[0]}
+                2. **운영/마케팅 주의**: {final_risks[1]}
+                3. **기타 관리 요소**: {final_risks[2]}
+                """)
+
+                # 섹션 3: 추천 상권
+                st.subheader(f"💡 {target_item} 도입 강력추천 상권")
+                ca, cb = st.columns(2)
+                with ca:
+                    st.error("🔥 [강력추천 1] 핵심 역세권/유동지구")
+                    st.write("**전략**: 2030 주력 타겟 밀집 지역으로 시각적 홍보물 집중 배치")
+                with cb:
+                    st.error("🔥 [강력추천 2] 대규모 주거지 상권")
+                    st.write("**전략**: 목적성 구매가 높은 지역이므로 앱 예약 시스템 활용 권장")
+
+                # 섹션 4: 실시간 콘텐츠
+                st.markdown("---")
+                st.subheader(f"🎬 {target_item} 실시간 추천 콘텐츠")
                 v_col, n_col = st.columns(2)
-                
                 with v_col:
-                    st.subheader("📽️ 유튜브 인기 숏츠 Best 5")
-                    shorts = get_youtube_shorts(target_item, display=5)
-                    if shorts:
-                        for i, v in enumerate(shorts):
-                            t = v['title'].replace('<b>','').replace('</b>','')
-                            st.info(f"{i+1}. **[{t}]({v['link']})**")
-                    else:
-                        st.write("유튜브 데이터를 불러올 수 없습니다.")
-
+                    st.write("**📽️ 인기 동영상 TOP 3**")
+                    for v in get_naver_search('video', target_item):
+                        st.info(f"▶ [{v['title'].replace('<b>','').replace('</b>','')}]({v['link']})")
                 with n_col:
-                    st.subheader("📰 최신 관련 뉴스 Top 5")
-                    news = get_naver_news(target_item, display=5)
-                    if news:
-                        for i, n in enumerate(news):
-                            t = n['title'].replace('<b>','').replace('</b>','').replace('&quot;','"')
-                            st.success(f"{i+1}. **[{t}]({n['link']})**")
-                    else:
-                        st.write("관련 뉴스가 없습니다.")
+                    st.write("**📰 관련 최신 뉴스**")
+                    for n in get_naver_search('news', target_item):
+                        st.info(f"📰 [{n['title'].replace('<b>','').replace('</b>','').replace('&quot;','"')}]({n['link']})")
 
-            else: st.error("데이터가 없습니다.")
-else: st.info("왼쪽 사이드바에서 분석을 시작하세요.")
+            else:
+                st.error("데이터를 불러오지 못했습니다. 키워드를 확인해 주세요.")
+else:
+    st.info("왼쪽 사이드바에서 상품명을 입력하고 [분석 시작] 버튼을 눌러주세요.")
