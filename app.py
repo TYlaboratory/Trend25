@@ -117,6 +117,17 @@ if analyze_btn:
                     st.write("2. **구글**: 능동적인 정보 탐색 활발")
                     st.write("3. **인스타그램**: 참여형 팬덤 화력 최상위권")
 
+# ⚠️ 도입 시 주의사항 (리스크 분석) 섹션 추가
+    st.markdown("---") # 구분선
+    st.subheader(f"⚠️ {keywords[0]} 도입 시 주의사항")
+    
+    # 가독성을 위해 st.error 또는 st.warning 박스를 사용합니다.
+    st.error(f"""
+    1. **화제성 소멸 리스크**: {keywords[0]}의 트렌드 주기가 매우 짧아 초기 물량 확보 후 적기 재고 관리가 필수입니다.
+    2. **공급 불안정성**: SNS 대란 발생 시 원재료 수급에 따른 품절 사태가 고객 불만으로 이어질 수 있습니다.
+    3. **미투(Me-too) 상품 유입**: 경쟁사의 유사 상품 출시가 빨라 차별화된 소구점 유지가 관건입니다.
+    4. **가격 민감도**: 편의점 특성상 유사 카테고리 대비 가격 경쟁력이 떨어질 경우 이탈률이 높을 수 있습니다.
+    """)
                 with col_right:
                     st.header("🏆 Best 5 순위")
                     avg_scores = data['total'].mean().sort_values(ascending=False)
