@@ -79,7 +79,7 @@ def fetch_data(keywords, months):
 
 # 3. 사이드바
 st.sidebar.title("📊 분석 제어판")
-items_raw = st.sidebar.text_input("분석 상품 리스트 (쉼표로 구분)", value="틈새라면, 신라면, 삼양라면")
+items_raw = st.sidebar.text_input("분석 상품 리스트 (쉼표로 구분)", value="티쳐스, 틈새라면, 잭다니엘")
 months = st.sidebar.slider("데이터 분석 기간 (개월)", 1, 12, 6)
 analyze_btn = st.sidebar.button("분석 시작")
 
@@ -120,14 +120,13 @@ if analyze_btn:
                 with col_left:
                     st.header(f"📑 [{target_item}] 전략 리포트")
                     st.subheader("핵심인사이트 요약")
-                    st.write(f"• **트렌드 주도력**: {target_item}은(는) 최근 MZ세대 사이에서 핵심 전략 상품입니다.")
-                    st.write(f"• **화제성 폭발력**: 특정 이벤트 시점 검색 지수가 수직 상승하며 매장 방문을 유도합니다.")
-                    st.write(f"• **고객 충성도**: 자발적 포스팅 활성화로 실제 구매 팬덤이 견고합니다.")
+                    st.write(f"• **시장 위치**: {target_item}은(는) 해당 카테고리 내 주요 검색 지표를 선점하고 있습니다.")
+                    st.write(f"• **분석 결과**: 최근 하이볼 및 혼술, 또는 간편식 트렌드와 결합하여 자발적 리뷰가 증가하고 있습니다.")
                     st.markdown("<br>", unsafe_allow_html=True)
                     st.subheader("🔎 매체별 상세 분석")
-                    st.write("1. **네이버**: 구매처 확인 등 구체적 탐색 증가")
-                    st.write("2. **구글**: 능동적인 정보 탐색 활발")
-                    st.write("3. **인스타그램**: 참여형 팬덤 화력 최상위권")
+                    st.write("1. **네이버**: 실구매가 및 매장 재고 확인 위주 탐색")
+                    st.write("2. **구글**: 레시피 및 제품 히스토리 정보 탐색 활발")
+                    st.write("3. **인스타그램**: 인증샷 중심의 비주얼 팬덤 형성")
 
                 with col_right:
                     st.header("🏆 Best 5 순위")
@@ -137,52 +136,53 @@ if analyze_btn:
                         if i >= 5: break
                         st.success(f"{medals[i]} **{name}**")
 
-                # --- [신규] 상품 맞춤형 리스크 분석 섹션 ---
+                # --- [업그레이드] 상품 맞춤형 리스크 분석 섹션 ---
                 st.markdown("---")
                 st.subheader(f"⚠️ {target_item} 도입 시 주의사항")
 
                 risk_db = {
-                    "food": [
-                        "유통기한이 짧은 신선식품군은 폐기율 관리가 수익성의 핵심입니다.",
-                        "건강 트렌드에 반하는 성분이 포함된 경우 부정적 여론 형성을 경계해야 합니다.",
-                        "원재료 수급 불안정으로 인한 생산 차질 리스크를 사전 점검해야 합니다.",
-                        "조리 과정이 복잡한 상품은 편의점 이용객의 편의성 기대치를 낮출 수 있습니다.",
-                        "계절적 요인(온도/습도)에 따른 품질 변질 리스크가 존재합니다."
+                    "liquor": [ # 위스키/주류 전용
+                        f"{target_item}은(는) 도수가 높은 위스키로, 법적 음주 규제 및 청소년 판매 금지 교육이 철저해야 합니다.",
+                        "위스키 트렌드는 '하이볼' 위주이므로 토닉워터, 레몬, 얼음컵과의 연관 진열 실패 시 매출이 급감할 수 있습니다.",
+                        "고단가 상품 특성상 매대 내 도난 및 파손 리스크가 크므로 전용 보안 케이스 활용을 권장합니다.",
+                        "가성비 위스키 시장의 경쟁이 심화됨에 따라 단순 입점보다는 한정판 굿즈 등 차별화 요소가 필요합니다."
                     ],
-                    "trend": [
-                        "트렌드 주기가 매우 짧아 초기 물량 확보 후 적정 재고 유지가 관건입니다.",
-                        "특정 인플루언서 의존도가 높을 경우 모델 리스크가 존재합니다.",
-                        "방송 노출 직후에는 수요가 폭발하나 2주 이내에 급감하는 경향이 있습니다.",
-                        "SNS 인증샷을 유도하기 힘든 외형일 경우 자발적 홍보 효과가 낮습니다.",
-                        "콜라보레이션 상품일 경우 계약 기간 종료 후 처분 문제를 고려해야 합니다."
+                    "food": [ # 라면/간편식 전용
+                        f"{target_item}은(는) 유통기한 관리가 용이하나, 매운맛 등 유행 주기가 짧아 초기 물량 조절에 실패할 리스크가 있습니다.",
+                        "자극적인 컨셉인 경우 건강 중시 소비자의 부정적 여론이 있을 수 있어 성분 표시 안내에 유의해야 합니다.",
+                        "경쟁사의 미투(Me-too) 상품 출시가 매우 빨라 선점 효과가 사라지기 전 집중 마케팅이 필요합니다."
                     ],
-                    "competition": [
-                        "경쟁사의 유사 상품 출시가 빨라 오리지널리티 마케팅이 중요합니다.",
-                        "기존 베스트셀러와의 카니발라이제이션(자기잠식) 효과를 분석해야 합니다.",
-                        "온라인 최저가와의 가격 차이가 클 경우 오프라인 구매 매력도가 하락합니다.",
-                        "유사 제품군 중 1위 브랜드가 확고한 경우 시장 점유율 확보가 어렵습니다.",
-                        "가격 민감도가 높은 품목이므로 할인 행사의 적절한 타이밍이 중요합니다."
+                    "trend": [ # 일반 트렌드/굿즈
+                        "트렌드 주기가 매우 짧아 이슈 소멸 시 재고가 급격히 악성 자산화될 수 있습니다.",
+                        "특정 인플루언서나 방송 테마 의존도가 높을 경우 모델 리스크에 노출될 우려가 있습니다.",
+                        "SNS 인증샷을 유도하기 힘든 평범한 패키지는 화제성 전파 속도를 늦출 수 있습니다."
+                    ],
+                    "general": [ # 공통
+                        "온라인 최저가와의 가격 격차 발생 시 편의점 구매 매력도가 하락할 수 있습니다.",
+                        "물류 부하가 큰 대용량 상품의 경우 소규모 점포의 진열 효율성을 저해할 수 있습니다."
                     ]
                 }
 
-                # 카테고리 판별 로직
-                selected_cat = "competition"
-                food_kw = ["라면", "도시락", "간식", "푸드", "커피", "디저트", "우유", "술", "맥주"]
-                trend_kw = ["티쳐스", "아이돌", "캐릭터", "콜라보", "유튜버", "방송", "신상", "굿즈"]
-                
-                if any(k in target_item for k in food_kw): selected_cat = "food"
+                # 정밀 카테고리 판별 로직
+                selected_cat = "general"
+                # 위스키 키워드 정교화 (티쳐스 포함)
+                liquor_kw = ["티쳐스", "위스키", "술", "맥주", "와인", "잭다니엘", "조니워커", "발렌타인", "하이볼"]
+                food_kw = ["라면", "면", "볶음", "도시락", "김밥", "간식", "디저트"]
+                trend_kw = ["캐릭터", "아이돌", "콜라보", "방송", "유튜버", "굿즈"]
+
+                if any(k in target_item for k in liquor_kw): selected_cat = "liquor"
+                elif any(k in target_item for k in food_kw): selected_cat = "food"
                 elif any(k in target_item for k in trend_kw): selected_cat = "trend"
 
-                # 추천 리스크 3개 선정 (해당 카테고리 위주)
+                # 맞춤형 리스크 2개 + 공통 리스크 1개 조합
                 cat_risks = random.sample(risk_db[selected_cat], 2)
-                all_msgs = [m for ms in risk_db.values() for m in ms]
-                other_risk = random.sample([m for m in all_msgs if m not in cat_risks], 1)
-                final_risks = cat_risks + other_risk
+                common_risks = random.sample(risk_db["general"], 1)
+                final_risks = cat_risks + common_risks
 
                 st.warning(f"""
-                1. **핵심 분석**: {final_risks[0]}
-                2. **운영 시 주의**: {final_risks[1]}
-                3. **기타 모니터링**: {final_risks[2]}
+                1. **상품군 핵심 리스크**: {final_risks[0]}
+                2. **운영/마케팅 주의**: {final_risks[1]}
+                3. **공통 관리 요소**: {final_risks[2]}
                 """)
 
                 # 섹션 3: 강력추천 상권 및 전략
@@ -197,7 +197,7 @@ if analyze_btn:
                     st.write("**이유**: 일상적 반복 구매가 활발한 지역")
                     st.write("**전략**: 상시 재고 확보로 결품 방지")
 
-                # --- [신규] 실시간 추천 동영상 및 뉴스 섹션 ---
+                # 섹션 4: 실시간 추천 동영상 및 뉴스 섹션
                 st.markdown("---")
                 st.subheader(f"🎬 {target_item} 실시간 추천 콘텐츠")
                 v_col, n_col = st.columns(2)
