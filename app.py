@@ -36,7 +36,7 @@ def get_naver_search(category, query, display=3):
     except:
         return []
 
-# 2. 데이터 수집 함수
+# 2. 데이터 수집 함수 (기존 네이버 데이터랩 연동)
 def fetch_data(keywords, months):
     NAVER_CLIENT_ID = "9mDKko38immm22vni0rL"
     NAVER_CLIENT_SECRET = "ONIf7vxWzZ"
@@ -137,13 +137,52 @@ if analyze_btn:
                         if i >= 5: break
                         st.success(f"{medals[i]} **{name}**")
 
-                # --- 신규 섹션: 리스크 분석 ---
+                # --- [신규] 상품 맞춤형 리스크 분석 섹션 ---
                 st.markdown("---")
                 st.subheader(f"⚠️ {target_item} 도입 시 주의사항")
+
+                risk_db = {
+                    "food": [
+                        "유통기한이 짧은 신선식품군은 폐기율 관리가 수익성의 핵심입니다.",
+                        "건강 트렌드에 반하는 성분이 포함된 경우 부정적 여론 형성을 경계해야 합니다.",
+                        "원재료 수급 불안정으로 인한 생산 차질 리스크를 사전 점검해야 합니다.",
+                        "조리 과정이 복잡한 상품은 편의점 이용객의 편의성 기대치를 낮출 수 있습니다.",
+                        "계절적 요인(온도/습도)에 따른 품질 변질 리스크가 존재합니다."
+                    ],
+                    "trend": [
+                        "트렌드 주기가 매우 짧아 초기 물량 확보 후 적정 재고 유지가 관건입니다.",
+                        "특정 인플루언서 의존도가 높을 경우 모델 리스크가 존재합니다.",
+                        "방송 노출 직후에는 수요가 폭발하나 2주 이내에 급감하는 경향이 있습니다.",
+                        "SNS 인증샷을 유도하기 힘든 외형일 경우 자발적 홍보 효과가 낮습니다.",
+                        "콜라보레이션 상품일 경우 계약 기간 종료 후 처분 문제를 고려해야 합니다."
+                    ],
+                    "competition": [
+                        "경쟁사의 유사 상품 출시가 빨라 오리지널리티 마케팅이 중요합니다.",
+                        "기존 베스트셀러와의 카니발라이제이션(자기잠식) 효과를 분석해야 합니다.",
+                        "온라인 최저가와의 가격 차이가 클 경우 오프라인 구매 매력도가 하락합니다.",
+                        "유사 제품군 중 1위 브랜드가 확고한 경우 시장 점유율 확보가 어렵습니다.",
+                        "가격 민감도가 높은 품목이므로 할인 행사의 적절한 타이밍이 중요합니다."
+                    ]
+                }
+
+                # 카테고리 판별 로직
+                selected_cat = "competition"
+                food_kw = ["라면", "도시락", "간식", "푸드", "커피", "디저트", "우유", "술", "맥주"]
+                trend_kw = ["티쳐스", "아이돌", "캐릭터", "콜라보", "유튜버", "방송", "신상", "굿즈"]
+                
+                if any(k in target_item for k in food_kw): selected_cat = "food"
+                elif any(k in target_item for k in trend_kw): selected_cat = "trend"
+
+                # 추천 리스크 3개 선정 (해당 카테고리 위주)
+                cat_risks = random.sample(risk_db[selected_cat], 2)
+                all_msgs = [m for ms in risk_db.values() for m in ms]
+                other_risk = random.sample([m for m in all_msgs if m not in cat_risks], 1)
+                final_risks = cat_risks + other_risk
+
                 st.warning(f"""
-                1. **화제성 소멸 리스크**: {target_item}은(는) 트렌드 주기가 매우 짧아 초기 물량 확보 후 적정 재고 유지가 관건입니다.
-                2. **공급 불안정성**: SNS 이슈 발생 시 갑작스러운 품절로 인한 고객 불만이 발생할 수 있습니다.
-                3. **미투(Me-too) 상품 유입**: 경쟁사의 유사 상품 출시가 빨라 오리지널리티 마케팅이 중요합니다.
+                1. **핵심 분석**: {final_risks[0]}
+                2. **운영 시 주의**: {final_risks[1]}
+                3. **기타 모니터링**: {final_risks[2]}
                 """)
 
                 # 섹션 3: 강력추천 상권 및 전략
@@ -158,7 +197,7 @@ if analyze_btn:
                     st.write("**이유**: 일상적 반복 구매가 활발한 지역")
                     st.write("**전략**: 상시 재고 확보로 결품 방지")
 
-                # --- 신규 섹션: 실시간 추천 동영상 및 뉴스 ---
+                # --- [신규] 실시간 추천 동영상 및 뉴스 섹션 ---
                 st.markdown("---")
                 st.subheader(f"🎬 {target_item} 실시간 추천 콘텐츠")
                 v_col, n_col = st.columns(2)
@@ -168,22 +207,20 @@ if analyze_btn:
                     videos = get_naver_search('video', target_item)
                     if videos:
                         for v in videos:
-                            title = v['title'].replace('<b>','').replace('</b>','')
-                            st.info(f"▶ [{title}]({v['link']})")
-                    else:
-                        st.write("관련 영상을 찾을 수 없습니다.")
+                            t = v['title'].replace('<b>','').replace('</b>','')
+                            st.info(f"▶ [{t}]({v['link']})")
+                    else: st.write("검색 결과가 없습니다.")
 
                 with n_col:
                     st.write("**📰 관련 최신 뉴스**")
                     news = get_naver_search('news', target_item)
                     if news:
                         for n in news:
-                            title = n['title'].replace('<b>','').replace('</b>','').replace('&quot;','"')
-                            st.info(f"📰 [{title}]({n['link']})")
-                    else:
-                        st.write("관련 뉴스를 찾을 수 없습니다.")
+                            t = n['title'].replace('<b>','').replace('</b>','').replace('&quot;','"')
+                            st.info(f"📰 [{t}]({n['link']})")
+                    else: st.write("검색 결과가 없습니다.")
 
             else:
-                st.error("데이터 수집 실패")
+                st.error("데이터를 불러오지 못했습니다. 키워드를 확인해 주세요.")
 else:
     st.info("왼쪽 사이드바에서 상품명을 입력하고 [분석 시작] 버튼을 눌러주세요.")
